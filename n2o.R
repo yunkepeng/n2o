@@ -262,3 +262,5 @@ ggplot(data=subset(df_daily_forcing,years==2014), aes(x=date, y=pred_n2o))+
   geom_line( aes(x=date, y=n2o_flux),color="black")+
   geom_line( aes(x=date, y=pred_n2o),color="red")+
   geom_line( aes(x=date, y=pred_n2o_wfdei),color="orange")+ theme_classic()
+
+##
