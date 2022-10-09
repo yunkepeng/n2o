@@ -137,19 +137,20 @@ tmp$forcing[[1]]$dnh4[tmp$forcing[[1]]$date=="2019-04-02"] <- 4
 modlist3 <- rsofun::runread_pmodel_f(tmp,par = pars)
 summary(modlist3$data[[1]]$en2o-modlist2$data[[1]]$en2o)
 
-df_daily_forcing$en2o_meteo <- modlist3$data[[1]]$en2o
+df_daily_forcing$pred_n2o <- modlist3$data[[1]]$en2o*1000000/14/86400 #convert from gN/m2/d to umol/m2/s
+
 df_daily_forcing$years <- year(df_daily_forcing$date)
 df_daily_forcing$date <- as.Date(df_daily_forcing$date)
 ggplot(data=subset(df_daily_forcing,years==2018 & is.na(obs_n2o)==F),
        aes(x=date, y=obs_n2o))+
   geom_point( aes(x=date, y=obs_n2o),color="black")+
   geom_line( aes(x=date, y=obs_n2o),color="black")+
-  geom_line( aes(x=date, y=en2o_meteo),color="red")+ theme_classic()+
+  geom_line( aes(x=date, y=pred_n2o),color="red")+ theme_classic()+
   ylab("N2O (umol/m2/s)")+xlab("2018")
 
 ggplot(data=subset(df_daily_forcing,years==2019 & is.na(obs_n2o)==F),
        aes(x=date, y=obs_n2o))+
   geom_point( aes(x=date, y=obs_n2o),color="black")+
   geom_line( aes(x=date, y=obs_n2o),color="black")+
-  geom_line( aes(x=date, y=en2o_meteo),color="red")+ theme_classic()+
+  geom_line( aes(x=date, y=pred_n2o),color="red")+ theme_classic()+
   ylab("N2O (umol/m2/s)")+xlab("2019")
