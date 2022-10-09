@@ -106,23 +106,23 @@ tmp$params_siml[[1]]$recycle <- 1
 modlist1 <- rsofun::runread_pmodel_f(tmp,par = pars)
 modlist1$data
 
-#check N-balance
+#Question 1: check N-balance
+#check N balance
+# N[total] = nleaf + nroot + nsoil + ninorg +  nlabl + seedn + nlitt
+# Then: delta-N[total] - nfix = nloss?
+#now it is not completely equal
 output_df <- as.data.frame(modlist1$data)
 
 output_df$n_total<- (output_df$nleaf+output_df$nroot+output_df$nsoil+output_df$ninorg+
                        output_df$nlabl+output_df$seedn+output_df$nlitt)
 output_df$delta_n_total <- c(NA,diff(output_df$n_total)) #the first day is expressed as NA
 
-#check N balance
-# N[total] = nleaf + nroot + nsoil + ninorg +  nlabl + seedn + nlitt
-# Then: delta-N[total] - nfix = nloss?
-
 ggplot(data=output_df)+
   geom_line( aes(x=date, y=delta_n_total),color="orange")+
   geom_line( aes(x=date, y=nloss),color="red")+
   geom_line( aes(x=date, y=nfix),color="purple")
 
-#check if changing fharv will change n2o...No
+#Question 2; fharv was not applied in model
 tmp$forcing[[1]]$fharv[tmp$forcing[[1]]$date=="2018-07-12"] <- 1.0
 modlist2 <- rsofun::runread_pmodel_f(tmp,par = pars)
 summary(modlist2$data[[1]]$en2o-modlist1$data[[1]]$en2o)
