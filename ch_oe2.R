@@ -300,24 +300,32 @@ pred_2018 <- as.numeric(subset(df_daily_forcing,
                                years==2018 & is.na(obs_n2o)==F)$pred_n2o)
 mean(obs_2018)*1000
 std.error(obs_2018)*1000
-
 mean(pred_2018)*1000
 std.error(pred_2018)*1000
 
 ggplot(data=subset(df_daily_forcing,years==2018 & is.na(obs_n2o)==F), 
        aes(x=date, y=obs_n2o))+
-  geom_point( aes(x=date, y=obs_n2o),color="black")+
-  geom_line( aes(x=date, y=obs_n2o),color="black")+
-  geom_line( aes(x=date, y=pred_n2o),color="red")+ theme_classic()+
-  ylab("N2O (umol/m2/s)")+xlab("2018")+theme(axis.text=element_text(size=12))
+  geom_point( aes(x=date, y=obs_n2o*1000),color="black")+
+  geom_line( aes(x=date, y=obs_n2o*1000),color="black")+
+  geom_line( aes(x=date, y=pred_n2o*1000),color="red")+ theme_classic()+
+  ylab("N2O (nmol/m2/s)")+xlab("2018")+theme(axis.text=element_text(size=12))
 ggsave(paste("~/data/n2o_2018.jpg",sep=""),width = 10, height = 5)
+
+obs_2019 <- as.numeric(subset(df_daily_forcing,
+                              years==2019 & is.na(obs_n2o)==F)$obs_n2o)
+pred_2019 <- as.numeric(subset(df_daily_forcing,
+                               years==2019 & is.na(obs_n2o)==F)$pred_n2o)
+mean(obs_2019)*1000
+std.error(obs_2019)*1000
+mean(pred_2019)*1000
+std.error(pred_2019)*1000
 
 ggplot(data=subset(df_daily_forcing,years==2019& is.na(obs_n2o)==F),
        aes(x=date, y=obs_n2o))+
-  geom_point( aes(x=date, y=obs_n2o),color="black")+
-  geom_line( aes(x=date, y=obs_n2o),color="black")+
-  geom_line( aes(x=date, y=pred_n2o),color="red")+ theme_classic()+
-  ylab("N2O (umol/m2/s)")+xlab("2019")+theme(axis.text=element_text(size=12))
+  geom_point( aes(x=date, y=obs_n2o*1000),color="black")+
+  geom_line( aes(x=date, y=obs_n2o*1000),color="black")+
+  geom_line( aes(x=date, y=pred_n2o*1000),color="red")+ theme_classic()+
+  ylab("N2O (nmol/m2/s)")+xlab("2019")+theme(axis.text=element_text(size=12))
 ggsave(paste("~/data/n2o_2019.jpg",sep=""),width = 10, height = 5)
 
 data_output <- as.data.frame(modlist1$data[[1]])
