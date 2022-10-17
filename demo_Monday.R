@@ -73,8 +73,8 @@ pars <- list(
   non                   = 0.01,
   n2on                  = 0.0005,
   kn                    = 83.0,
-  kdoc                  = 17.0,
-  docmax                = 1.0,
+  kdoc                  = 17.0, #1.7? soil moisture affecting denitrification?
+  docmax                = 1.0, #change?
   dnitr2n2o             = 0.01,
   beta                  = 146.000000,
   rd_to_vcmax           = 0.01400000,
@@ -99,12 +99,13 @@ forcing$site_info[[1]]$year_end <- 2019
 forcing$params_siml[[1]]$firstyeartrend <- 2018
 forcing$params_siml[[1]]$nyeartrend <- 2
 tmp <- forcing %>% mutate(forcing = purrr::map(forcing, ~mutate(., fharv = 0.0,
-                                                                dno3 = df_daily_forcing$noy[1],dnh4 = df_daily_forcing$nhx[1])))
+                                                                dno3 = df_daily_forcing$noy[1],dnh4 = df_daily_forcing$nhx[1],
+                                                                cseed=0,nseed=0)))
 tmp$params_siml[[1]]$spinupyears <- 1500
 tmp$params_siml[[1]]$recycle <- 1
 
 modlist1 <- rsofun::runread_pmodel_f(tmp,par = pars)
-modlist1$data
+modlist1$data[[1]]$en2o
 
 #Question 1: check N-balance
 #check N balance
@@ -123,7 +124,7 @@ ggplot(data=output_df)+
   geom_line( aes(x=date, y=nfix),color="purple")
 
 #Question 2; fharv was not applied in model
-tmp$forcing[[1]]$fharv[tmp$forcing[[1]]$date=="2018-07-12"] <- 1.0
+tmp$forcing[[1]]$fharv[tmp$forcing[[1]]$date=="2018-07-12"] <- 0.1
 modlist2 <- rsofun::runread_pmodel_f(tmp,par = pars)
 summary(modlist2$data[[1]]$en2o-modlist1$data[[1]]$en2o)
 
@@ -154,3 +155,5 @@ ggplot(data=subset(df_daily_forcing,years==2019 & is.na(obs_n2o)==F),
   geom_line( aes(x=date, y=obs_n2o),color="black")+
   geom_line( aes(x=date, y=pred_n2o),color="red")+ theme_classic()+
   ylab("N2O (umol/m2/s)")+xlab("2019")
+
+(max(subset(df_daily_forcing,years==2019 & is.na(obs_n2o)==F)$pred_n2o)-min(subset(df_daily_forcing,years==2019 & is.na(obs_n2o)==F)$pred_n2o))*1000

@@ -91,8 +91,8 @@ pars <- list(
 
 siteinfo_final <- as.data.frame(tibble(sitename=c("CH-oe2","CH-aes"),
                                        lon =c(7.73,7.66),
-                            lat = c(47.28,47.17),elv =  c(452,465),
-                            year_start=c(2012,2012),year_end=c(2016,2016)))
+                                       lat = c(47.28,47.17),elv =  c(452,465),
+                                       year_start=c(2012,2012),year_end=c(2016,2016)))
 siteinfo_final
 #for (i in 1:(nrow(siteinfo_final))){
 #  df_watch <- ingest(
@@ -126,9 +126,9 @@ siteinfo_final
 #  write.csv(ddf_meteo, csvfile, row.names = TRUE)
 #}
 
-#First, deal with CH-OE2
+#deal with ch_aes
 #read 2012-2016 and combine into daily average 
-df1 <- read.csv("~/data/ch_oe2/forcing_wfdei/CH-oe2.csv")
+df1 <- read.csv("~/data/ch_oe2/forcing_wfdei/CH-aes.csv")
 
 df1$date <- as.Date(df1$date)
 forcing <- rsofun::p_model_drivers
@@ -143,19 +143,20 @@ df2 <- df1 %>% mutate(ymonth = month(date),
 
 #create a repeated years, 2 years
 df3 <- rbind(df2,df2)
-df3$date <- seq(as.Date("2018-01-01"), as.Date("2019-12-31"), "days")
+date_length <- seq(as.Date("2019-01-01"), as.Date("2020-12-31"), "days")
+date_length<- date_length[!(format(date_length,"%m") == "02" & format(date_length, "%d") == "29"),drop = FALSE]
+length(date_length)
+df3$date <- date_length
 
 df3$doy <- 1:length(df3$date)
 
 forcing_data <- as_tibble(df3[,c("date","temp","prec","vpd","ppfd","patm","ccov_int","ccov","snow","rain","fapar","co2","doy","tmin","tmax")])
 
 #forcing basing on metero
-a2018 <- read.csv("~/data/ch_oe2/CH-OE2_meteo_fluxes_2018_Yunke.csv")
-a2019 <- read.csv("~/data/ch_oe2/CH-OE2_meteo_fluxes_2019_Yunke.csv")
-a_final <- rbind(a2018,a2019)
-a_final$date <- as.Date(a_final$TIMESTAMP)
-n2o_daily <- aggregate(a_final,by=list(a_final$date), FUN=mean, na.rm=TRUE)
-
+a2019_2010 <- read.csv("~/data/ch_aes/CH-AES_meteo_fluxes_2019-2020_Yunke.csv")
+a2019_2010$date <- as.Date(a2019_2010$TIMESTAMP)
+n2o_daily <- aggregate(a2019_2010,by=list(a2019_2010$date), FUN=mean, na.rm=TRUE)
+dim(n2o_daily)
 summary(n2o_daily)
 
 #now, convert this data to forcing file 
@@ -191,11 +192,11 @@ df_daily_forcing$tmax <- df_daily_forcing$temp
 
 #ndep
 df_ndep <- ingest_bysite(
-  sitename  = "ch-oe2",source    = "ndep",
-  lon  = 7.73,lat= 47.28,year_start= 2000,year_end  = 2009,
+  sitename  = "ch-aes",source    = "ndep",
+  lon  = 7.66,lat= 47.17,year_start= 2000,year_end  = 2009,
   timescale = "y",dir= "~/data/ndep_lamarque/",verbose   = FALSE)
-noy_choe2 <- mean(df_ndep$noy,na.rm=TRUE)/365 #gN/m2/yr to gN/m2/day
-nhx_choe2 <-mean(df_ndep$nhx,na.rm=TRUE)/365 #gN/m2/yr to gN/m2/day
+noy_chaes <- mean(df_ndep$noy,na.rm=TRUE)/365 #gN/m2/yr to gN/m2/day
+nhx_chaes <-mean(df_ndep$nhx,na.rm=TRUE)/365 #gN/m2/yr to gN/m2/day
 
 
 forcing$forcing[[1]] <- (as_tibble(df_daily_forcing[,c("date","temp","prec","vpd","ppfd",
@@ -206,31 +207,23 @@ forcing$sitename <- df1$sitename[1]
 forcing$site_info[[1]]$lon <- df1$lon[1]
 forcing$site_info[[1]]$lat <- df1$lat[1]
 forcing$site_info[[1]]$elv <-  df1$elv[1]
-forcing$site_info[[1]]$date_start <- as.Date("2018-01-01")
-forcing$site_info[[1]]$date_end <- as.Date("2019-12-31")
-forcing$params_siml[[1]]$firstyeartrend <- 2018
-forcing$site_info[[1]]$year_end <- 2019
+forcing$site_info[[1]]$date_start <- as.Date("2019-01-01")
+forcing$site_info[[1]]$date_end <- as.Date("2020-12-31")
+forcing$params_siml[[1]]$firstyeartrend <- 2019
+forcing$site_info[[1]]$year_end <- 2020
 forcing$params_siml[[1]]$nyeartrend <- 2
-tmp <- forcing %>% mutate(forcing = purrr::map(forcing, ~mutate(., fharv = 0.0, dno3 = noy_choe2,
-                                                                dnh4 = nhx_choe2,
+tmp <- forcing %>% mutate(forcing = purrr::map(forcing, ~mutate(., fharv = 0.0, dno3 = noy_chaes,
+                                                                dnh4 = nhx_chaes,
                                                                 cseed=0,nseed=0)))
 tmp$params_siml[[1]]$spinupyears <- 1500
 tmp$params_siml[[1]]$recycle <- 1
 
-tmp$forcing[[1]]$dno3[tmp$forcing[[1]]$date=="2019-02-28"] <- 5
-tmp$forcing[[1]]$dnh4[tmp$forcing[[1]]$date=="2019-02-28"] <- 5
+#/Users/yunpeng/data/ch_aes/CH-AES_management_2019-2020.docx
+#manure fertilization twice so was not included 
 
-tmp$forcing[[1]]$dno3[tmp$forcing[[1]]$date=="2019-04-02"] <- 4
-tmp$forcing[[1]]$dnh4[tmp$forcing[[1]]$date=="2019-04-02"] <- 4
-
-#24.05.2019 urea application and decomposition: (NH2)2CO → CNO− + NH4+
-tmp$forcing[[1]]$dno3[tmp$forcing[[1]]$date=="2019-05-24"] <- 4.6
-tmp$forcing[[1]]$dnh4[tmp$forcing[[1]]$date=="2019-05-24"] <- 4.6
-
-#25.07.2019 solid digestate application: 2.15
-tmp$forcing[[1]]$dno3[tmp$forcing[[1]]$date=="2019-07-25"] <- 2.15
-tmp$forcing[[1]]$dnh4[tmp$forcing[[1]]$date=="2019-07-25"] <- 2.15
-
+#22.05.2020 urea application and decomposition: (NH2)2CO → CNO− + NH4+
+tmp$forcing[[1]]$dno3[tmp$forcing[[1]]$date=="2020-05-22"] <- 9.2
+tmp$forcing[[1]]$dnh4[tmp$forcing[[1]]$date=="2020-05-22"] <- 9.2
 
 modlist2 <- rsofun::runread_pmodel_f(tmp,par = pars)
 modlist2$data
@@ -252,40 +245,21 @@ en2o <- as.data.frame(modlist2$data[[1]])$en2o
 en2o_meteo <- as.data.frame(modlist2_meteo$data[[1]])$en2o
 
 df_daily_forcing$obs_n2o <- df_daily_forcing$N2O_gf/1000 #nmol/m2/s to umol/m2/s
-df_daily_forcing$pred_n2o <- en2o*1000000/14/86400     #convert from gN/m2/d to umol/m2/s
+df_daily_forcing$pred_n2o <- en2o*1000000/14/86400   #convert from gN/m2/d to umol/m2/s
 df_daily_forcing$pred_n2o_meteo <- en2o_meteo*1000000/14/86400  #umol/m2/s
 
 df_daily_forcing$years <- format(df_daily_forcing$date, format = "%Y")
 
-obs_2018 <- as.numeric(subset(df_daily_forcing,
-                              years==2018 & is.na(obs_n2o)==F)$obs_n2o)
-pred_2018 <- as.numeric(subset(df_daily_forcing,
-                               years==2018 & is.na(obs_n2o)==F)$pred_n2o)
-mean(obs_2018)*1000
-std.error(obs_2018)*1000
-mean(pred_2018)*1000
-std.error(pred_2018)*1000
-
-ggplot(data=subset(df_daily_forcing,years==2018 & is.na(obs_n2o)==F), 
-       aes(x=date, y=obs_n2o))+
-  geom_point( aes(x=date, y=obs_n2o*1000),color="black")+
-  geom_line( aes(x=date, y=obs_n2o*1000),color="black")+
-  geom_line( aes(x=date, y=pred_n2o*1000),color="red")+
-  geom_line( aes(x=date, y=pred_n2o_meteo*1000),color="blue")+
-  theme_classic()+
-  ylab("N2O (nmol/m2/s)")+xlab("2018")+theme(axis.text=element_text(size=12))
-ggsave(paste("~/data/n2o_2018.jpg",sep=""),width = 10, height = 5)
-
-obs_2019 <- as.numeric(subset(df_daily_forcing,
+obs_aes_2019 <- as.numeric(subset(df_daily_forcing,
                               years==2019 & is.na(obs_n2o)==F)$obs_n2o)
-pred_2019 <- as.numeric(subset(df_daily_forcing,
+pred_aes_2019 <- as.numeric(subset(df_daily_forcing,
                                years==2019 & is.na(obs_n2o)==F)$pred_n2o)
-mean(obs_2019)*1000
-std.error(obs_2019)*1000
-mean(pred_2019)*1000
-std.error(pred_2019)*1000
+mean(obs_aes_2019)*1000
+std.error(obs_aes_2019)*1000
+mean(pred_aes_2019)*1000
+std.error(pred_aes_2019)*1000
 
-ggplot(data=subset(df_daily_forcing,years==2019& is.na(obs_n2o)==F),
+ggplot(data=subset(df_daily_forcing,years==2019 & is.na(obs_n2o)==F), 
        aes(x=date, y=obs_n2o))+
   geom_point( aes(x=date, y=obs_n2o*1000),color="black")+
   geom_line( aes(x=date, y=obs_n2o*1000),color="black")+
@@ -293,38 +267,23 @@ ggplot(data=subset(df_daily_forcing,years==2019& is.na(obs_n2o)==F),
   geom_line( aes(x=date, y=pred_n2o_meteo*1000),color="blue")+
   theme_classic()+
   ylab("N2O (nmol/m2/s)")+xlab("2019")+theme(axis.text=element_text(size=12))
-ggsave(paste("~/data/n2o_2019.jpg",sep=""),width = 10, height = 5)
+ggsave(paste("~/data/n2o_2019_aes.jpg",sep=""),width = 10, height = 5)
 
+obs_aes_2020 <- as.numeric(subset(df_daily_forcing,
+                              years==2020 & is.na(obs_n2o)==F)$obs_n2o)
+pred_aes_2020 <- as.numeric(subset(df_daily_forcing,
+                               years==2020 & is.na(obs_n2o)==F)$pred_n2o)
+mean(obs_aes_2020)*1000
+std.error(obs_aes_2020)*1000
+mean(pred_aes_2020)*1000
+std.error(pred_aes_2020)*1000
 
-#now, include ch_aes
-
-
-
-
-
-
-#check modlist2
-output_df <- as.data.frame(modlist2$data)
-
-output_df$n_total<- (output_df$nleaf+output_df$nroot+output_df$nsoil+output_df$ninorg+
-  output_df$nlabl+output_df$seedn+output_df$nlitt)
-output_df$delta_n_total <- c(NA,diff(output_df$n_total)) #the first day is expressed as NA
-
-ggplot(data=output_df)+
-  geom_line( aes(x=date, y=delta_n_total),color="orange")+
-  geom_line( aes(x=date, y=nloss),color="red")+
-  geom_line( aes(x=date, y=nfix),color="purple")
-
-#check values
-summary(output_df$delta_n_total+output_df$nloss)
-
-#some notes
-# N[total] = nleaf + nroot + nsoil + ninorg +  nlabl + seedn + nlitt
-
-#N[loss] = nloss?
-
-#check: 
-# delta-N[total] - nfix = nloss?
-
-#???N[initial] - N[fixed] = Nfix
-#???nfix=0?
+ggplot(data=subset(df_daily_forcing,years==2020& is.na(obs_n2o)==F),
+       aes(x=date, y=obs_n2o))+
+  geom_point( aes(x=date, y=obs_n2o*1000),color="black")+
+  geom_line( aes(x=date, y=obs_n2o*1000),color="black")+
+  geom_line( aes(x=date, y=pred_n2o*1000),color="red")+
+  geom_line( aes(x=date, y=pred_n2o_meteo*1000),color="blue")+
+  theme_classic()+
+  ylab("N2O (nmol/m2/s)")+xlab("2019")+theme(axis.text=element_text(size=12))
+ggsave(paste("~/data/n2o_2020_aes.jpg",sep=""),width = 10, height = 5)
