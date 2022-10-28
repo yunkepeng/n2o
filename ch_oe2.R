@@ -173,8 +173,11 @@ n2o_daily$vpd_meteo <- n2o_daily$VPD
 
 n2o_daily$ppfd_meteo <- n2o_daily$Rg*2.04/1000000 # convert from umol/m2/s to mol/m2/s
 
-df_daily_forcing <- merge(forcing_data,n2o_daily[,c("date","rain_meteo","temp_meteo","vpd_meteo","ppfd_meteo","N2O_gf")],by=c("date"),all.x=TRUE)
+df_daily_forcing <- merge(forcing_data,n2o_daily[,c("date","rain_meteo","temp_meteo","vpd_meteo","ppfd_meteo","N2O_gf",
+                                                    "SWC_0.05","TS_0.05")],by=c("date"),all.x=TRUE)
+df_daily_forcing$swc_relative <- df_daily_forcing$SWC_0.05/max(df_daily_forcing$SWC_0.05,na.rm=T)
 summary(df_daily_forcing)
+
 #compare meteo and wfdei data
 plot(df_daily_forcing$temp~df_daily_forcing$temp_meteo)
 plot(df_daily_forcing$vpd~df_daily_forcing$vpd_meteo)
@@ -254,6 +257,8 @@ en2o_meteo <- as.data.frame(modlist2_meteo$data[[1]])$en2o
 df_daily_forcing$obs_n2o <- df_daily_forcing$N2O_gf/1000 #nmol/m2/s to umol/m2/s
 df_daily_forcing$pred_n2o <- en2o*1000000/14/86400     #convert from gN/m2/d to umol/m2/s
 df_daily_forcing$pred_n2o_meteo <- en2o_meteo*1000000/14/86400  #umol/m2/s
+df_daily_forcing$pred_soilT <- as.data.frame(modlist2$data[[1]])$tsoil
+df_daily_forcing$pred_swc <- as.data.frame(modlist2$data[[1]])$wscal
 
 df_daily_forcing$years <- format(df_daily_forcing$date, format = "%Y")
 
@@ -276,6 +281,20 @@ ggplot(data=subset(df_daily_forcing,years==2018 & is.na(obs_n2o)==F),
   ylab("N2O (nmol/m2/s)")+xlab("2018")+theme(axis.text=element_text(size=12))
 ggsave(paste("~/data/n2o_2018.jpg",sep=""),width = 10, height = 5)
 
+#check soil T and SWC
+ggplot(data=subset(df_daily_forcing,years==2018 & is.na(obs_n2o)==F), 
+       aes(x=date, y=obs_n2o))+
+  geom_line( aes(x=date, y=obs_n2o*1000),color="black")+
+  geom_line( aes(x=date, y=pred_n2o*1000),color="red")+
+  geom_line( aes(x=date, y=TS_0.05),color="orange")+
+  geom_line( aes(x=date, y=pred_soilT),color="pink")+
+  geom_line( aes(x=date, y=swc_relative*100),color="cyan")+
+  geom_line( aes(x=date, y=pred_swc*100),color="blue")+
+  theme_classic()+
+  ylab("N2O (nmol/m2/s)")+xlab("2018")+theme(axis.text=element_text(size=12))
+ggsave(paste("~/data/n2o_2018_swc_T.jpg",sep=""),width = 10, height = 5)
+
+
 obs_2019 <- as.numeric(subset(df_daily_forcing,
                               years==2019 & is.na(obs_n2o)==F)$obs_n2o)
 pred_2019 <- as.numeric(subset(df_daily_forcing,
@@ -295,9 +314,18 @@ ggplot(data=subset(df_daily_forcing,years==2019& is.na(obs_n2o)==F),
   ylab("N2O (nmol/m2/s)")+xlab("2019")+theme(axis.text=element_text(size=12))
 ggsave(paste("~/data/n2o_2019.jpg",sep=""),width = 10, height = 5)
 
-
-#now, include ch_aes
-
+#check soil T and SWC
+ggplot(data=subset(df_daily_forcing,years==2019 & is.na(obs_n2o)==F), 
+       aes(x=date, y=obs_n2o))+
+  geom_line( aes(x=date, y=obs_n2o*1000),color="black")+
+  geom_line( aes(x=date, y=pred_n2o*1000),color="red")+
+  geom_line( aes(x=date, y=TS_0.05),color="orange")+
+  geom_line( aes(x=date, y=pred_soilT),color="pink")+
+  geom_line( aes(x=date, y=swc_relative*100),color="cyan")+
+  geom_line( aes(x=date, y=pred_swc*100),color="blue")+
+  theme_classic()+
+  ylab("N2O (nmol/m2/s)")+xlab("2018")+theme(axis.text=element_text(size=12))
+ggsave(paste("~/data/n2o_2019_swc_T.jpg",sep=""),width = 10, height = 5)
 
 
 
