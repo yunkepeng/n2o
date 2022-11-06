@@ -74,3 +74,5 @@ kevin_soil_c_n2o %>%
   geom_hline( linetype = 'dotted',yintercept=0.0, size=0.5)+ 
   theme_classic()+coord_flip()+theme(axis.text=element_text(size=12))+
   labs(x="", y="N2O sensitivity coefficient to eCO2") 
+
+dim(kevin_soil_c_n2o)
