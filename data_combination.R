@@ -2,7 +2,32 @@ library(tidyverse)
 library(dplyr)
 library(maps)
 library(rworldmap)
-
+library(tidyverse) 
+library(ncmeta)
+library(viridis)
+library(ggthemes)
+library(LSD)
+library(yardstick)
+library(ggplot2)
+library(RColorBrewer)
+library(dplyr)
+library(gplots)
+library(tidyselect)
+library(extrafont)
+devtools::load_all("/Users/yunpeng/yunkepeng/latest_packages/rbeni/") 
+#library(rbeni)
+library(raster)
+library(maps)
+library(rworldmap)
+library(cowplot)
+library(ncdf4)
+library(scales)
+library(spgwr)
+source("/Users/yunpeng/yunkepeng/CNuptake_MS/R/stepwise.R")
+library(lmerTest)
+library(lme4)
+library("PerformanceAnalytics")
+library(MuMIn)
 ### Liao et al. 2020 GCB: https://onlinelibrary.wiley.com/doi/full/10.1111/gcb.16365
 #1a: field-based n2o
 liao_field <- read.csv("~/data/n2o_liao/org/Global_change_biology_GCB-22-1572_primary_field_data.csv")
@@ -136,15 +161,106 @@ all_n2o$pft[all_n2o$pft=="desert"|all_n2o$pft=="Desert"] <- "desert"
 
 unique(all_n2o$pft)
 
-site_record <- unique(all_n2o[,c("lon","lat","pft")])
+site_record <- unique(all_n2o[,c("lon","lat","z","pft")])
 dim(site_record)
 site_record %>% group_by(pft)  %>% summarise(number = n())
 
 #map
-newmap <- getMap(resolution = "low")
-plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
-points(subset(site_record,pft=="forest")$lon,subset(site_record,pft=="forest")$lat, col="red", pch=16,cex=0.5)
-points(subset(site_record,pft=="grassland")$lon,subset(site_record,pft=="grassland")$lat, col="green", pch=16,cex=0.5)
-points(subset(site_record,pft=="cropland")$lon,subset(site_record,pft=="cropland")$lat, col="purple", pch=16,cex=0.5)
-points(subset(site_record,pft=="plantation")$lon,subset(site_record,pft=="plantation")$lat, col="purple", pch=16,cex=0.5)
-points(subset(site_record,pft=="fallow")$lon,subset(site_record,pft=="fallow")$lat, col="purple", pch=16,cex=0.5)
+#newmap <- getMap(resolution = "low")
+#plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
+#points(subset(site_record,pft=="forest")$lon,subset(site_record,pft=="forest")$lat, col="red", pch=16,cex=0.5)
+#points(subset(site_record,pft=="grassland")$lon,subset(site_record,pft=="grassland")$lat, col="green", pch=16,cex=0.5)
+#points(subset(site_record,pft=="cropland")$lon,subset(site_record,pft=="cropland")$lat, col="purple", pch=16,cex=0.5)
+#points(subset(site_record,pft=="plantation")$lon,subset(site_record,pft=="plantation")$lat, col="purple", pch=16,cex=0.5)
+#points(subset(site_record,pft=="fallow")$lon,subset(site_record,pft=="fallow")$lat, col="purple", pch=16,cex=0.5)
+
+#interpolate missing elevation - let's interpolate them by etopo
+site_record_missing <- subset(site_record,is.na(z)==TRUE)
+site_record_missing2 <- (unique(site_record_missing[,c("lon","lat")]))
+site_record_missing2$sitename <- paste("sitename",c(1:nrow(site_record_missing2)),sep="")
+df_etopo <- ingest(
+  site_record_missing2,
+  source = "etopo1",
+  dir = "~/data/etopo/" 
+)
+site_record_missing2$z2 <- as.numeric(as.data.frame(df_etopo$data))
+summary(site_record_missing2$z2)
+site_record_missing2$z2[site_record_missing2$z2<0] <- 0
+
+#now, interpolate those NA elevation by etopo
+site_record2 <- merge(site_record,site_record_missing2,by=c("lon","lat"),all.x=TRUE)
+site_record2$z[is.na(site_record2$z)==TRUE] <- site_record2$z2[is.na(site_record2$z)==TRUE]
+summary(site_record2)
+#prepare for site forcing from gwr
+csvfile <- paste("~/data/n2o_Yunke/forcing/siteinfo.csv")
+write_csv(site_record2[,c("lon","lat","z","pft")], path = csvfile)
+
+#now, read all predictors data
+allpredictors <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_predictors.csv")
+#first merge to get all elevation values
+allpredictors <- aggregate(allpredictors,by=list(allpredictors$lon,allpredictors$lat), FUN=mean, na.rm=TRUE) 
+
+allpredictors <- allpredictors[,!(names(allpredictors) %in% c("Group.1","Group.2","sitename"))]
+allpredictors$sitename <- paste("siteno",c(1:nrow(allpredictors)),sep="")
+
+#remove n2o's z as will be newly combined
+all_n2o <- all_n2o[,!(names(all_n2o) %in% c("z"))]
+
+all_n2o_df <- merge(all_n2o,allpredictors,by=c("lon","lat"),all.x=TRUE)
+
+#start analysis
+
+forest <- subset(all_n2o_df,pft=="forest")
+dim(forest)
+forest %>% group_by(file)  %>% summarise(number = n())
+forest %>% group_by(method)  %>% summarise(number = n())
+
+#check duplicates
+unique_coord <- unique(forest[,c("lon","lat","file","ref")])
+forest$rep<-NA
+forest$rep[forest$lon==-84.00] <- "rep"
+forest$rep[forest$lon==-72.00 & forest$lat==42.50] <- "rep"
+forest$rep[forest$lon==-66.00] <- "rep"
+forest$rep[forest$lon==-63.00] <- "rep"
+forest$rep[forest$lon==-62.50 & forest$lat==-10.50] <- "rep"
+forest$rep[forest$lon==-55.00] <- "rep"
+forest$rep[forest$lon==8.00&forest$lat==47.00] <- "rep"
+forest$rep[forest$lon==11.00] <- "rep"
+forest$rep[forest$lon==145.50] <- "rep"
+
+forest2 <- subset(forest,is.na(rep)==T)
+dim(forest2)
+
+#first, look at data-driven model with nfer
+forest2$n2o_ugm2h[forest2$n2o_ugm2h<=0] <- NA
+forest2$n2o_a <- log(forest2$n2o_ugm2h)
+forest2$Tg_a <- forest2$Tg
+forest2$PPFD_a <- log(forest2$PPFD)
+forest2$vpd_a <- log(forest2$vpd)
+forest2$fAPAR_a <- forest2$fAPAR
+forest2$CNrt_a <- log(forest2$CNrt)
+forest2$ndep_a <- log(forest2$ndep)
+forest2$nfer_a <- (forest2$Nfer_kgha)
+forest2$gpp_a <- log(forest2$mapped_gpp)
+forest2$orgc_a <- log(forest2$ORGC)
+forest2$pH_a <- (forest2$PHAQ)
+forest2$site_a <- (forest2$sitename)
+
+dim(forest2)
+summary(forest2)
+forest3 <- na.omit(forest2[,c("n2o_a","Tg_a","PPFD_a","vpd_a","fAPAR_a",
+                   "CNrt_a","ndep_a","nfer_a","gpp_a","orgc_a","pH_a","site_a")])
+dim(forest3)
+
+stepwise(forest3,"n2o_a")[[1]]
+stepwise(forest3,"n2o_a")[[2]]
+
+summary(lmer(n2o_a~orgc_a+PPFD_a+Tg_a+fAPAR_a+nfer_a+(1|site_a),data=forest3))
+
+
+forest4 <- na.omit(forest2[,c("n2o_a","Tg_a","PPFD_a","vpd_a","fAPAR_a",
+                              "CNrt_a","ndep_a","gpp_a","orgc_a","pH_a","site_a")])
+dim(forest4)
+stepwise(forest4,"n2o_a")[[1]]
+stepwise(forest4,"n2o_a")[[2]]
+summary(lmer(n2o_a~orgc_a+PPFD_a+Tg_a+(1|site_a),data=forest4))
