@@ -14,7 +14,8 @@ library(dplyr)
 library(gplots)
 library(tidyselect)
 library(extrafont)
-devtools::load_all("/Users/yunpeng/yunkepeng/latest_packages/rbeni/") 
+devtools::load_all("/Users/yunpeng/yunkepeng/latest_packages/rbeni/")
+devtools::load_all("/Users/yunpeng/yunkepeng/latest_packages/ingestr/")
 #library(rbeni)
 library(raster)
 library(maps)
@@ -28,6 +29,8 @@ library(lmerTest)
 library(lme4)
 library("PerformanceAnalytics")
 library(MuMIn)
+library(car)
+library(visreg)
 ### Liao et al. 2020 GCB: https://onlinelibrary.wiley.com/doi/full/10.1111/gcb.16365
 #1a: field-based n2o
 liao_field <- read.csv("~/data/n2o_liao/org/Global_change_biology_GCB-22-1572_primary_field_data.csv")
@@ -40,7 +43,21 @@ names(liao_field2) <- c("ref","site","year","lat","lon","Nfer_kgha",
 liao_field2[liao_field2 == -9999] <- NA
 
 summary(liao_field2)
-liao_field2$method <- "pot"
+liao_field2$method <- "field"
+#correct start_yr
+unique(liao_field2$year)
+liao_field2$year[liao_field2$year==" 1996-1998"] <- "1996-1998"
+liao_field2$year[liao_field2$year=="200-2002"] <- "2000-2002" #after checked reference
+liao_field2$start_yr <- substr(liao_field2$year, 1, 4) 
+unique(liao_field2$start_yr) #looks ok
+#select last 4 character
+liao_field2$end_yr <- substr(liao_field2$year, nchar(liao_field2$year)-3, nchar(liao_field2$year)) 
+unique(liao_field2$end_yr) #looks ok
+liao_field2$start_yr <-as.numeric(liao_field2$start_yr)
+liao_field2$end_yr <-as.numeric(liao_field2$end_yr)
+liao_field2$end_yr[liao_field2$end_yr==1014] <- 2014
+summary(liao_field2)
+summary(liao_field2$end_yr -liao_field2$start_yr)
 
 #1b: pot-based n2o
 liao_pot <- read.csv("~/data/n2o_liao/org/Global_change_biology_GCB-22-1572_primary_pot_data.csv")
@@ -53,6 +70,18 @@ names(liao_pot2) <- c("ref","site","year","lat","lon","Nfer_mgkg",
 liao_pot2[liao_pot2 == -9999] <- NA
 
 liao_pot2$method <- "pot"
+
+#correct start_yr
+unique(liao_pot2$year)
+liao_pot2$start_yr <- substr(liao_pot2$year, 1, 4) 
+unique(liao_pot2$start_yr) #looks ok
+#select last 4 character
+liao_pot2$end_yr <- substr(liao_pot2$year, nchar(liao_pot2$year)-3, nchar(liao_pot2$year)) 
+unique(liao_pot2$end_yr) #looks ok
+liao_pot2$start_yr <-as.numeric(liao_pot2$start_yr)
+liao_pot2$end_yr <-as.numeric(liao_pot2$end_yr)
+summary(liao_pot2)
+summary(liao_pot2$end_yr -liao_pot2$start_yr)
 
 #combine them
 liao_all <- dplyr::bind_rows(liao_field2,liao_pot2) 
@@ -100,6 +129,8 @@ names(cui2_fallow) <- c("ref","lat","lon","start_yr","end_yr","fertilizers",
 cui2_fallow$method <- "field_fallow"
 cui2_fallow$file <- "cui et al. nature food"
 #convert some years
+unique(cui2_fallow$start_yr)
+unique(cui2_fallow$end_yr)
 cui2_fallow$start_yr[cui2_fallow$start_yr=="2011/2012"] <- 2011
 cui2_fallow$start_yr[cui2_fallow$start_yr=="2011/2013"] <- 2011
 cui2_fallow$start_yr[cui2_fallow$start_yr=="2011/2014"] <- 2011
@@ -131,8 +162,6 @@ hortnagl2$file <- "hortnagl et al. 2018 gcb"
 hortnagl2$pft <- "grassland"
 hortnagl2$method <- "field"
 
-#csvfile <- paste("~/data/site_record.csv")
-#write_csv(site_record, path = csvfile)
 #add Xu-Ri 
 xuri <- read.csv("~/data/n2o_xuri/xuri_newphy.csv")
 names(xuri) <- c("no","lon","lat","pft","year","n2o_kghayr","location","ref")
@@ -150,6 +179,18 @@ xuri2 <- xuri[,c("lon","lat","pft","year","n2o_ugm2h","ref")]
 xuri2$file <- "Xu-Ri et al. (2012) New Phytol"
 xuri2$method <- "field"
 
+#correct years
+unique(xuri2$year)
+xuri2$start_yr <- substr(xuri2$year, 1, 4) 
+unique(xuri2$start_yr) #looks ok
+#select last 4 character
+xuri2$end_yr <- substr(xuri2$year, nchar(xuri2$year)-3, nchar(xuri2$year)) 
+unique(xuri2$end_yr) #looks ok
+xuri2$start_yr <-as.numeric(xuri2$start_yr)
+xuri2$end_yr <-as.numeric(xuri2$end_yr)
+summary(xuri2)
+summary(xuri2$end_yr -xuri2$start_yr)
+
 all_n2o <- dplyr::bind_rows(liao_all,cui2,cui2_fallow,hortnagl2,xuri2) 
 
 all_n2o$pft[all_n2o$pft==" wetland"|all_n2o$pft=="wetland"] <- "wetland"
@@ -161,21 +202,11 @@ all_n2o$pft[all_n2o$pft=="desert"|all_n2o$pft=="Desert"] <- "desert"
 
 unique(all_n2o$pft)
 
-site_record <- unique(all_n2o[,c("lon","lat","z","pft")])
+site_record <- unique(all_n2o[,c("lon","lat","z")])
 dim(site_record)
-site_record %>% group_by(pft)  %>% summarise(number = n())
-
-#map
-#newmap <- getMap(resolution = "low")
-#plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
-#points(subset(site_record,pft=="forest")$lon,subset(site_record,pft=="forest")$lat, col="red", pch=16,cex=0.5)
-#points(subset(site_record,pft=="grassland")$lon,subset(site_record,pft=="grassland")$lat, col="green", pch=16,cex=0.5)
-#points(subset(site_record,pft=="cropland")$lon,subset(site_record,pft=="cropland")$lat, col="purple", pch=16,cex=0.5)
-#points(subset(site_record,pft=="plantation")$lon,subset(site_record,pft=="plantation")$lat, col="purple", pch=16,cex=0.5)
-#points(subset(site_record,pft=="fallow")$lon,subset(site_record,pft=="fallow")$lat, col="purple", pch=16,cex=0.5)
 
 #interpolate missing elevation - let's interpolate them by etopo
-site_record_missing <- subset(site_record,is.na(z)==TRUE)
+site_record_missing <- site_record
 site_record_missing2 <- (unique(site_record_missing[,c("lon","lat")]))
 site_record_missing2$sitename <- paste("sitename",c(1:nrow(site_record_missing2)),sep="")
 df_etopo <- ingest(
@@ -189,26 +220,80 @@ site_record_missing2$z2[site_record_missing2$z2<0] <- 0
 
 #now, interpolate those NA elevation by etopo
 site_record2 <- merge(site_record,site_record_missing2,by=c("lon","lat"),all.x=TRUE)
+plot(site_record2$z~site_record2$z2) #check: or data that has z - it looks ok.
 site_record2$z[is.na(site_record2$z)==TRUE] <- site_record2$z2[is.na(site_record2$z)==TRUE]
 summary(site_record2)
+dim(site_record2)
 #prepare for site forcing from gwr
+#aggregate basing on lon and lat
+site_record2 <- as.data.frame(site_record2 %>% group_by(lon,lat)  %>% summarise(z = mean(z)))
+dim(site_record2)
+dim(unique(site_record2[,c("lon","lat")]))
+summary(site_record2)
 csvfile <- paste("~/data/n2o_Yunke/forcing/siteinfo.csv")
-write_csv(site_record2[,c("lon","lat","z","pft")], path = csvfile)
+write_csv(site_record2[,c("lon","lat","z")], path = csvfile)
+
+#first merge to get all elevation values
+site_record2$sitename <- paste("siteno",c(1:nrow(site_record2)),sep="")
+all_n2o <- all_n2o[,!(names(all_n2o) %in% c("z"))]
+all_n2o_z <- merge(all_n2o,site_record2,by=c("lon","lat"),all.x=TRUE)
+
+#create lon, lat, z, start_yr, end_yr
+site_ingest <- unique(all_n2o_z[,c("lon","lat","z","start_yr","end_yr")])
+site_ingest$start_yr[is.na(site_ingest$start_yr)==T] <- 1991
+site_ingest$end_yr[is.na(site_ingest$end_yr)==T] <- 2010
+summary(site_ingest)
+#cru and wfdei together: data available from 1979-2016
+subset(site_ingest,start_yr<1979)
+#convert 1978 to 1979-1988
+site_ingest$end_yr[site_ingest$start_yr<1979]<-1988
+site_ingest$start_yr[site_ingest$start_yr<1979]<-1979
+
+#convert >2016 to 1997-2016
+subset(site_ingest,start_yr>2016|end_yr>2016)
+site_ingest$info[site_ingest$start_yr>2016|site_ingest$end_yr>2016] <- "higher_year"
+site_ingest$start_yr[site_ingest$info=="higher_year"]<-1997
+site_ingest$end_yr[site_ingest$info=="higher_year"]<-2016
+
+summary(site_ingest$end_yr- site_ingest$start_yr)
+summary(site_ingest)
+site_ingest_df<- site_ingest[,c("lon","lat","z","start_yr","end_yr")]
+names(site_ingest_df) <- c("lon","lat","elv","year_start","year_end")
+site_ingest_df$sitename <- paste("ingest",c(1:nrow(site_ingest_df)),sep="")
+csvfile <- paste("~/data/n2o_Yunke/forcing/siteinfo_measurementyear.csv")
+write_csv(site_ingest_df, path = csvfile)
 
 #now, read all predictors data
 allpredictors <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_predictors.csv")
-#first merge to get all elevation values
-allpredictors <- aggregate(allpredictors,by=list(allpredictors$lon,allpredictors$lat), FUN=mean, na.rm=TRUE) 
+allpredictors <- allpredictors[,!(names(allpredictors) %in% c("sitename"))]
 
-allpredictors <- allpredictors[,!(names(allpredictors) %in% c("Group.1","Group.2","sitename"))]
-allpredictors$sitename <- paste("siteno",c(1:nrow(allpredictors)),sep="")
-
-#remove n2o's z as will be newly combined
-all_n2o <- all_n2o[,!(names(all_n2o) %in% c("z"))]
-
-all_n2o_df <- merge(all_n2o,allpredictors,by=c("lon","lat"),all.x=TRUE)
+all_n2o_df <- merge(all_n2o_z,allpredictors,by=c("lon","lat","z"),all.x=TRUE)
 
 #start analysis
+
+#first, look at data-driven model with nfer
+all_n2o_df$n2o_ugm2h[all_n2o_df$n2o_ugm2h<=0] <- NA
+all_n2o_df$n2o_a <- log(all_n2o_df$n2o_ugm2h)
+all_n2o_df$Tg_a <- all_n2o_df$Tg
+all_n2o_df$PPFD_a <- log(all_n2o_df$PPFD)
+all_n2o_df$vpd_a <- log(all_n2o_df$vpd)
+all_n2o_df$fAPAR_a <- all_n2o_df$fAPAR
+all_n2o_df$CNrt_a <- log(all_n2o_df$CNrt)
+all_n2o_df$ndep_a <- log(all_n2o_df$ndep)
+all_n2o_df$nfer_a <- (all_n2o_df$Nfer_kgha)
+all_n2o_df$gpp_a <- log(all_n2o_df$mapped_gpp)
+all_n2o_df$orgc_a <- log(all_n2o_df$ORGC)
+all_n2o_df$pH_a <- (all_n2o_df$PHAQ)
+all_n2o_df$alpha_a <- (all_n2o_df$alpha)
+all_n2o_df$site_a <- (all_n2o_df$sitename)
+all_n2o_df$totaln_a <- log(all_n2o_df$TOTN)
+
+all_n2o_df$obs_orgc_a <- log(all_n2o_df$soc_gkg)
+all_n2o_df$obs_pH_a <- log(all_n2o_df$pH)
+all_n2o_df$obs_totalN_a <- log(all_n2o_df$totaln_gkg)
+all_n2o_df$mineral_N <- (all_n2o_df$nh4_mgkg+all_n2o_df$no3_mgkg)
+all_n2o_df$obs_mineral_N_a <- log(all_n2o_df$mineral_N)
+
 
 forest <- subset(all_n2o_df,pft=="forest")
 dim(forest)
@@ -231,36 +316,117 @@ forest$rep[forest$lon==145.50] <- "rep"
 forest2 <- subset(forest,is.na(rep)==T)
 dim(forest2)
 
-#first, look at data-driven model with nfer
-forest2$n2o_ugm2h[forest2$n2o_ugm2h<=0] <- NA
-forest2$n2o_a <- log(forest2$n2o_ugm2h)
-forest2$Tg_a <- forest2$Tg
-forest2$PPFD_a <- log(forest2$PPFD)
-forest2$vpd_a <- log(forest2$vpd)
-forest2$fAPAR_a <- forest2$fAPAR
-forest2$CNrt_a <- log(forest2$CNrt)
-forest2$ndep_a <- log(forest2$ndep)
-forest2$nfer_a <- (forest2$Nfer_kgha)
-forest2$gpp_a <- log(forest2$mapped_gpp)
-forest2$orgc_a <- log(forest2$ORGC)
-forest2$pH_a <- (forest2$PHAQ)
-forest2$site_a <- (forest2$sitename)
+#check 
+forest2_field <- subset(forest2,method=="field")
+dim(forest2_field)
+forest2_field_natural <- subset(forest2_field,is.na(Nfer_kgha)==T|Nfer_kgha==0)
+dim(forest2_field_natural)
 
-dim(forest2)
-summary(forest2)
-forest3 <- na.omit(forest2[,c("n2o_a","Tg_a","PPFD_a","vpd_a","fAPAR_a",
-                   "CNrt_a","ndep_a","nfer_a","gpp_a","orgc_a","pH_a","site_a")])
-dim(forest3)
+forest2_field_natural_all <- (na.omit(forest2_field_natural[,c("site_a","n2o_a","orgc_a","pH_a","totaln_a",
+                                   "Tg_a","vpd_a","fAPAR_a","CNrt_a","ndep_a","gpp_a")]))
+stepwise(forest2_field_natural_all,"n2o_a")[[1]]
+stepwise(forest2_field_natural_all,"n2o_a")[[2]]
+mod1<- (lmer(n2o_a~Tg_a+pH_a+CNrt_a+
+               (1|site_a),data=forest2_field_natural_all))
+n1a <- visreg(mod1,"Tg_a",type="contrast")
+n1b <- visreg(mod1,"pH_a",type="contrast")
+n1c <- visreg(mod1,"CNrt_a",type="contrast")
 
-stepwise(forest3,"n2o_a")[[1]]
-stepwise(forest3,"n2o_a")[[2]]
+summary(mod1)
+r.squaredGLMM(mod1)
+unique(forest2_field_natural$file)
+newmap <- getMap(resolution = "low")
+sp::plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
+coord <- na.omit(forest2_field_natural[,c("site_a","n2o_a","orgc_a","pH_a","totaln_a",
+                                 "Tg_a","vpd_a","fAPAR_a","CNrt_a","ndep_a","gpp_a","lon","lat")])
+points(coord$lon,coord$lat, col="green", pch=16,cex=1)
 
-summary(lmer(n2o_a~orgc_a+PPFD_a+Tg_a+fAPAR_a+nfer_a+(1|site_a),data=forest3))
+#trying on observed?
+summary(lm(n2o_a~obs_orgc_a,forest2_field_natural))
+summary(lm(n2o_a~obs_totalN_a,forest2_field_natural))
 
+forest2_field_natural_all2 <- (na.omit(forest2_field_natural[,c("site_a","n2o_a","obs_mineral_N_a","obs_orgc_a","obs_pH_a","obs_totalN_a",
+                                                               "Tg_a","vpd_a","fAPAR_a","CNrt_a","ndep_a","gpp_a")]))
 
-forest4 <- na.omit(forest2[,c("n2o_a","Tg_a","PPFD_a","vpd_a","fAPAR_a",
-                              "CNrt_a","ndep_a","gpp_a","orgc_a","pH_a","site_a")])
-dim(forest4)
-stepwise(forest4,"n2o_a")[[1]]
-stepwise(forest4,"n2o_a")[[2]]
-summary(lmer(n2o_a~orgc_a+PPFD_a+Tg_a+(1|site_a),data=forest4))
+dim(forest2_field_natural_all2)
+
+#grassland - check rep
+unique(all_n2o_df$pft)
+grassland <- subset(all_n2o_df,pft=="grassland")
+unique_coord <- unique(grassland[,c("lon","lat","file","ref")])
+grassland$rep<-NA
+grassland$rep[grassland$lon==172.50 & grassland$lat==-43.50] <- "rep"
+grassland$rep[grassland$lon==116.00 & grassland$lat==43.50] <- "rep"
+grassland$rep[grassland$lon==116.50 & grassland$lat==43.50] <- "rep"
+grassland$rep[grassland$lon==8.54 & grassland$lat==47.12] <- "rep"
+grassland$rep[grassland$lon==10.00 & grassland$lat==47.50] <- "rep"
+grassland$rep[grassland$lon==8.50 & grassland$lat==50.50] <- "rep"
+
+grassland2 <- subset(grassland,is.na(rep)==T)
+dim(grassland2)
+
+#check 
+grassland2_field <- subset(grassland2,method=="field")
+dim(grassland2_field)
+grassland2_field_natural <- subset(grassland2_field,is.na(Nfer_kgha)==T|Nfer_kgha==0)
+dim(grassland2_field_natural)
+
+grassland2_field_natural_all <- (na.omit(grassland2_field_natural[,c("site_a","n2o_a","orgc_a","pH_a","totaln_a","ndep_a",
+                                                               "Tg_a","vpd_a","fAPAR_a","CNrt_a","gpp_a")]))
+stepwise(grassland2_field_natural_all,"n2o_a")[[1]]
+stepwise(grassland2_field_natural_all,"n2o_a")[[2]]
+mod2<- (lmer(n2o_a~ndep_a+
+               (1|site_a),data=grassland2_field_natural_all))
+summary(mod2)
+
+#method 2 - using fer vs. non-fer info
+#check 
+
+#fallow
+fallow <- subset(all_n2o_df,pft=="fallow")
+unique_coord <- unique(fallow[,c("lon","lat","file","ref")])
+#all ok
+dim(fallow)
+fallow2_field_natural <- subset(fallow,is.na(Nfer_kgha)==T|Nfer_kgha==0)
+dim(grassland2_field_natural)
+
+fallow2_field_natural_all <- (na.omit(fallow2_field_natural[,c("site_a","n2o_a","orgc_a","pH_a","totaln_a","ndep_a",
+                                                                     "Tg_a","vpd_a","fAPAR_a","CNrt_a","gpp_a")]))
+dim(fallow2_field_natural_all)
+stepwise(fallow2_field_natural_all,"n2o_a")[[1]]
+stepwise(fallow2_field_natural_all,"n2o_a")[[2]]
+mod3<- (lmer(n2o_a~gpp_a+
+               (1|site_a),data=fallow2_field_natural_all))
+summary(mod3)
+
+#finally cropland
+cropland <- subset(all_n2o_df,pft=="cropland")
+dim(cropland)
+unique_coord_n2o <- as.data.frame(cropland %>% group_by(lon,lat,file)  %>% summarise(n2o = mean(n2o_ugm2h,na.rm=T)))
+
+merged_coord <- merge(subset(unique_coord_n2o,file=="cui et al. nature food"),
+                      subset(unique_coord_n2o,file=="Liao et al. gcb"),
+                      by=c("lon","lat"),all.x=TRUE,all.y=TRUE)
+#QQQ: why cui and liao are so differ?
+#at least, this plots from cui should be removed
+repeated_column <- subset(merged_coord,is.na(file.x)==F & is.na(file.y)==F)[,c("lon","lat","file.x")]
+names(repeated_column) <- c("lon","lat","file")
+repeated_column$rep <- "rep"
+cropland2 <- merge(cropland,repeated_column,
+                      by=c("lon","lat","file"),all.x=TRUE)
+cropland2$rep
+cropland2 <- subset(cropland2,is.na(rep)==TRUE)
+
+cropland2_field_natural <- subset(cropland2,is.na(Nfer_kgha)==T|Nfer_kgha==0)
+dim(cropland2_field_natural)
+cropland2_field_natural_all <- (na.omit(cropland2_field_natural[,c("site_a","n2o_a","orgc_a","pH_a","totaln_a","ndep_a",
+                                                               "Tg_a","vpd_a","fAPAR_a","CNrt_a","gpp_a")]))
+dim(cropland2_field_natural_all)
+stepwise(cropland2_field_natural_all,"n2o_a")[[1]]
+stepwise(cropland2_field_natural_all,"n2o_a")[[2]]
+mod3<- (lmer(n2o_a~ndep_a+
+               (1|site_a),data=cropland2_field_natural_all))
+summary(mod3)
+
+cropfallow <- rbind(cropland2_field_natural_all,fallow2_field_natural_all)
+stepwise(cropfallow,"n2o_a")[[2]]
