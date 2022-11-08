@@ -2,7 +2,7 @@ library(tidyverse)
 library(dplyr)
 library(maps)
 library(rworldmap)
-library(tidyverse) 
+library(tidyverse)
 library(ncmeta)
 library(viridis)
 library(ggthemes)
@@ -48,10 +48,10 @@ liao_field2$method <- "field"
 unique(liao_field2$year)
 liao_field2$year[liao_field2$year==" 1996-1998"] <- "1996-1998"
 liao_field2$year[liao_field2$year=="200-2002"] <- "2000-2002" #after checked reference
-liao_field2$start_yr <- substr(liao_field2$year, 1, 4) 
+liao_field2$start_yr <- substr(liao_field2$year, 1, 4)
 unique(liao_field2$start_yr) #looks ok
 #select last 4 character
-liao_field2$end_yr <- substr(liao_field2$year, nchar(liao_field2$year)-3, nchar(liao_field2$year)) 
+liao_field2$end_yr <- substr(liao_field2$year, nchar(liao_field2$year)-3, nchar(liao_field2$year))
 unique(liao_field2$end_yr) #looks ok
 liao_field2$start_yr <-as.numeric(liao_field2$start_yr)
 liao_field2$end_yr <-as.numeric(liao_field2$end_yr)
@@ -73,10 +73,10 @@ liao_pot2$method <- "pot"
 
 #correct start_yr
 unique(liao_pot2$year)
-liao_pot2$start_yr <- substr(liao_pot2$year, 1, 4) 
+liao_pot2$start_yr <- substr(liao_pot2$year, 1, 4)
 unique(liao_pot2$start_yr) #looks ok
 #select last 4 character
-liao_pot2$end_yr <- substr(liao_pot2$year, nchar(liao_pot2$year)-3, nchar(liao_pot2$year)) 
+liao_pot2$end_yr <- substr(liao_pot2$year, nchar(liao_pot2$year)-3, nchar(liao_pot2$year))
 unique(liao_pot2$end_yr) #looks ok
 liao_pot2$start_yr <-as.numeric(liao_pot2$start_yr)
 liao_pot2$end_yr <-as.numeric(liao_pot2$end_yr)
@@ -84,7 +84,7 @@ summary(liao_pot2)
 summary(liao_pot2$end_yr -liao_pot2$start_yr)
 
 #combine them
-liao_all <- dplyr::bind_rows(liao_field2,liao_pot2) 
+liao_all <- dplyr::bind_rows(liao_field2,liao_pot2)
 
 summary(liao_all$n2o_ugm2h)
 liao_all$file <- "Liao et al. gcb"
@@ -162,7 +162,7 @@ hortnagl2$file <- "hortnagl et al. 2018 gcb"
 hortnagl2$pft <- "grassland"
 hortnagl2$method <- "field"
 
-#add Xu-Ri 
+#add Xu-Ri
 xuri <- read.csv("~/data/n2o_xuri/xuri_newphy.csv")
 names(xuri) <- c("no","lon","lat","pft","year","n2o_kghayr","location","ref")
 xuri$n2o_ugm2h <- xuri$n2o_kghayr*1000000000/10000/(365*24)
@@ -181,17 +181,17 @@ xuri2$method <- "field"
 
 #correct years
 unique(xuri2$year)
-xuri2$start_yr <- substr(xuri2$year, 1, 4) 
+xuri2$start_yr <- substr(xuri2$year, 1, 4)
 unique(xuri2$start_yr) #looks ok
 #select last 4 character
-xuri2$end_yr <- substr(xuri2$year, nchar(xuri2$year)-3, nchar(xuri2$year)) 
+xuri2$end_yr <- substr(xuri2$year, nchar(xuri2$year)-3, nchar(xuri2$year))
 unique(xuri2$end_yr) #looks ok
 xuri2$start_yr <-as.numeric(xuri2$start_yr)
 xuri2$end_yr <-as.numeric(xuri2$end_yr)
 summary(xuri2)
 summary(xuri2$end_yr -xuri2$start_yr)
 
-all_n2o <- dplyr::bind_rows(liao_all,cui2,cui2_fallow,hortnagl2,xuri2) 
+all_n2o <- dplyr::bind_rows(liao_all,cui2,cui2_fallow,hortnagl2,xuri2)
 
 all_n2o$pft[all_n2o$pft==" wetland"|all_n2o$pft=="wetland"] <- "wetland"
 all_n2o$pft[all_n2o$pft==" forest"|all_n2o$pft=="forest"] <- "forest"
@@ -212,7 +212,7 @@ site_record_missing2$sitename <- paste("sitename",c(1:nrow(site_record_missing2)
 df_etopo <- ingest(
   site_record_missing2,
   source = "etopo1",
-  dir = "~/data/etopo/" 
+  dir = "~/data/etopo/"
 )
 site_record_missing2$z2 <- as.numeric(as.data.frame(df_etopo$data))
 summary(site_record_missing2$z2)
@@ -244,15 +244,15 @@ site_ingest$start_yr[is.na(site_ingest$start_yr)==T] <- 1991
 site_ingest$end_yr[is.na(site_ingest$end_yr)==T] <- 2010
 summary(site_ingest)
 #cru and wfdei together: data available from 1979-2016
-subset(site_ingest,start_yr<1979)
+subset(site_ingest,start_yr<1980)
 #convert 1978 to 1979-1988
-site_ingest$end_yr[site_ingest$start_yr<1979]<-1988
-site_ingest$start_yr[site_ingest$start_yr<1979]<-1979
+site_ingest$end_yr[site_ingest$start_yr<1980]<-1989
+site_ingest$start_yr[site_ingest$start_yr<1980]<-1980
 
 #convert >2016 to 1997-2016
 subset(site_ingest,start_yr>2016|end_yr>2016)
 site_ingest$info[site_ingest$start_yr>2016|site_ingest$end_yr>2016] <- "higher_year"
-site_ingest$start_yr[site_ingest$info=="higher_year"]<-1997
+site_ingest$start_yr[site_ingest$info=="higher_year"]<-2007
 site_ingest$end_yr[site_ingest$info=="higher_year"]<-2016
 
 summary(site_ingest$end_yr- site_ingest$start_yr)
@@ -316,7 +316,7 @@ forest$rep[forest$lon==145.50] <- "rep"
 forest2 <- subset(forest,is.na(rep)==T)
 dim(forest2)
 
-#check 
+#check
 forest2_field <- subset(forest2,method=="field")
 dim(forest2_field)
 forest2_field_natural <- subset(forest2_field,is.na(Nfer_kgha)==T|Nfer_kgha==0)
@@ -365,7 +365,7 @@ grassland$rep[grassland$lon==8.50 & grassland$lat==50.50] <- "rep"
 grassland2 <- subset(grassland,is.na(rep)==T)
 dim(grassland2)
 
-#check 
+#check
 grassland2_field <- subset(grassland2,method=="field")
 dim(grassland2_field)
 grassland2_field_natural <- subset(grassland2_field,is.na(Nfer_kgha)==T|Nfer_kgha==0)
@@ -378,9 +378,17 @@ stepwise(grassland2_field_natural_all,"n2o_a")[[2]]
 mod2<- (lmer(n2o_a~ndep_a+
                (1|site_a),data=grassland2_field_natural_all))
 summary(mod2)
+r.squaredGLMM(mod2)
+n2a <- visreg(mod2,"ndep_a",type="contrast")
+
+newmap <- getMap(resolution = "low")
+sp::plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
+coord <- na.omit(grassland2_field_natural[,c("site_a","lon","lat","n2o_a","orgc_a","pH_a","totaln_a",
+                                          "Tg_a","vpd_a","fAPAR_a","CNrt_a","ndep_a","gpp_a","lon","lat")])
+points(coord$lon,coord$lat, col="blue", pch=16,cex=1)
 
 #method 2 - using fer vs. non-fer info
-#check 
+#check
 
 #fallow
 fallow <- subset(all_n2o_df,pft=="fallow")
@@ -398,6 +406,7 @@ stepwise(fallow2_field_natural_all,"n2o_a")[[2]]
 mod3<- (lmer(n2o_a~gpp_a+
                (1|site_a),data=fallow2_field_natural_all))
 summary(mod3)
+n3a <- visreg(mod3,"gpp_a",type="contrast")
 
 #finally cropland
 cropland <- subset(all_n2o_df,pft=="cropland")

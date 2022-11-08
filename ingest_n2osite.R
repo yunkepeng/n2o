@@ -1,6 +1,6 @@
 devtools::load_all("/Users/yunpeng/yunkepeng/latest_packages/ingestr/")
 siteinfo_final <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_measurementyear.csv")
-
+summary(siteinfo_final)
 for (i in 1:(nrow(siteinfo_final))){
   df_watch <- ingest(
     siteinfo  = siteinfo_final[i,],
@@ -24,7 +24,8 @@ for (i in 1:(nrow(siteinfo_final))){
   ddf_meteo$fapar <- 1
   ddf_meteo$tmax <- ddf_meteo$temp
   ddf_meteo$tmin <- ddf_meteo$temp
-  ddf_meteo$sitename <- siteinfo_final[i,c("sitename")]#  ddf_meteo$lon <- siteinfo_final[1,c("lon")]
+  ddf_meteo$sitename <- siteinfo_final[i,c("sitename")]
+  ddf_meteo$lon <- siteinfo_final[i,c("lon")]
   ddf_meteo$lat <-  siteinfo_final[i,c("lat")]
   ddf_meteo$elv <-  siteinfo_final[i,c("elv")]
   ddf_meteo$year_start <-  siteinfo_final[i,c("year_start")]
