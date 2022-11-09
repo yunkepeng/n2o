@@ -263,11 +263,28 @@ site_ingest_df$sitename <- paste("ingest",c(1:nrow(site_ingest_df)),sep="")
 csvfile <- paste("~/data/n2o_Yunke/forcing/siteinfo_measurementyear.csv")
 write_csv(site_ingest_df, path = csvfile)
 
+#conver n2o original data's year, too.
+all_n2o_z$start_yr[is.na(all_n2o_z$start_yr)==T] <- 1991
+all_n2o_z$end_yr[is.na(all_n2o_z$end_yr)==T] <- 2010
+all_n2o_z$end_yr[all_n2o_z$start_yr<1980]<-1989
+all_n2o_z$start_yr[all_n2o_z$start_yr<1980]<-1980
+all_n2o_z$info[all_n2o_z$start_yr>2016|all_n2o_z$end_yr>2016] <- "higher_year"
+all_n2o_z$start_yr[all_n2o_z$info=="higher_year"]<-2007
+all_n2o_z$end_yr[all_n2o_z$info=="higher_year"]<-2016
+summary(all_n2o_z$start_yr)
+summary(all_n2o_z$end_yr)
+
+#add gwr forced climates
+gwr_climate <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_measurementyear_gwrclimate.csv")
+names(gwr_climate) <- c("lon","lat","z","start_yr","end_yr","alpha_sites","PPFD_sites","Tg_sites","vpd_sites")
+all_n2o_z2 <- merge(all_n2o_z,gwr_climate,by=c("lon","lat","z","start_yr","end_yr"),all.x=TRUE)
+names(all_n2o_z2)
+summary(all_n2o_z2)
+
 #now, read all predictors data
 allpredictors <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_predictors.csv")
 allpredictors <- allpredictors[,!(names(allpredictors) %in% c("sitename"))]
-
-all_n2o_df <- merge(all_n2o_z,allpredictors,by=c("lon","lat","z"),all.x=TRUE)
+all_n2o_df <- merge(all_n2o_z2,allpredictors,by=c("lon","lat","z"),all.x=TRUE)
 
 #start analysis
 
@@ -277,6 +294,9 @@ all_n2o_df$n2o_a <- log(all_n2o_df$n2o_ugm2h)
 all_n2o_df$Tg_a <- all_n2o_df$Tg
 all_n2o_df$PPFD_a <- log(all_n2o_df$PPFD)
 all_n2o_df$vpd_a <- log(all_n2o_df$vpd)
+all_n2o_df$Tg_sites_a <- all_n2o_df$Tg_sites
+all_n2o_df$PPFD_sites_a <- log(all_n2o_df$PPFD_sites)
+all_n2o_df$vpd_sites_a <- log(all_n2o_df$vpd_sites)
 all_n2o_df$fAPAR_a <- all_n2o_df$fAPAR
 all_n2o_df$CNrt_a <- log(all_n2o_df$CNrt)
 all_n2o_df$ndep_a <- log(all_n2o_df$ndep)
@@ -341,14 +361,9 @@ coord <- na.omit(forest2_field_natural[,c("site_a","n2o_a","orgc_a","pH_a","tota
                                  "Tg_a","vpd_a","fAPAR_a","CNrt_a","ndep_a","gpp_a","lon","lat")])
 points(coord$lon,coord$lat, col="green", pch=16,cex=1)
 
-#trying on observed?
-summary(lm(n2o_a~obs_orgc_a,forest2_field_natural))
-summary(lm(n2o_a~obs_totalN_a,forest2_field_natural))
+forest2_field_natural_all2 <- (na.omit(forest2_field_natural[,c("site_a","n2o_a","orgc_a","pH_a","totaln_a",
+                                                               "Tg_sites_a","vpd_sites_a","fAPAR_a","CNrt_a","ndep_a","gpp_a")]))
 
-forest2_field_natural_all2 <- (na.omit(forest2_field_natural[,c("site_a","n2o_a","obs_mineral_N_a","obs_orgc_a","obs_pH_a","obs_totalN_a",
-                                                               "Tg_a","vpd_a","fAPAR_a","CNrt_a","ndep_a","gpp_a")]))
-
-dim(forest2_field_natural_all2)
 
 #grassland - check rep
 unique(all_n2o_df$pft)
