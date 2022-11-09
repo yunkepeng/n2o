@@ -1,8 +1,7 @@
-library(tidyverse)
+#library(tidyverse)
 library(dplyr)
 library(maps)
 library(rworldmap)
-library(tidyverse)
 library(ncmeta)
 library(viridis)
 library(ggthemes)
@@ -36,13 +35,17 @@ library(visreg)
 liao_field <- read.csv("~/data/n2o_liao/org/Global_change_biology_GCB-22-1572_primary_field_data.csv")
 liao_field2<- liao_field[,c("Ref","Study.area","Year","Latitude","Longitude","N.addition..kg.ha.1.",
                            "Altitude..m.","N2O.fluxes..μg.N.m.2.h.1.","Total.N..g.kg.1.","NO3....mg.kg.1.",
-                           "NH4...mg.kg.1.","pH","SOC..g.kg.1.","Ecosystem.types")]
+                           "NH4...mg.kg.1.","pH","SOC..g.kg.1.","Ecosystem.types","Soil.moisture....",
+                           "AOA..copy.numbers.g.1.dry.soil.","AOB..copy.numbers.g.1.dry.soil.","nirS...copy.numbers.g.1.dry.soil.",
+                           "nirK...copy.numbers.g.1.dry.soil.","nosZ...copy.numbers.g.1.dry.soil.")]
 names(liao_field2) <- c("ref","site","year","lat","lon","Nfer_kgha",
-                        "z","n2o_ugm2h","totaln_gkg","no3_mgkg","nh4_mgkg","pH","soc_gkg","pft")
+                        "z","n2o_ugm2h","totaln_gkg","no3_mgkg","nh4_mgkg","pH","soc_gkg","pft","obs_moisture",
+                        "AOA","AOB","nirS","nirK","nosZ")
 #set all value = -9999 to NA
 liao_field2[liao_field2 == -9999] <- NA
 
 summary(liao_field2)
+liao_field2$obs_moisture<- liao_field2$obs_moisture/100
 liao_field2$method <- "field"
 #correct start_yr
 unique(liao_field2$year)
@@ -64,12 +67,16 @@ liao_pot <- read.csv("~/data/n2o_liao/org/Global_change_biology_GCB-22-1572_prim
 #by checking original paper (e.g. Ref_ID = 42 or 51), mg N kg-1 is actually N addition. NO2 fluxes (μg N m-2 h-1) is actually N2O fluxes
 liao_pot2<- liao_pot[,c("Ref","Study.area","Year","Latitude","Longitude","mg.N.kg.1",
                             "Altitude..m.","NO2.fluxes..μg.N.m.2.h.1.","Total.N..g.kg.1.","NO3....mg.kg.1.",
-                            "NH4...mg.kg.1.","pH","SOC..g.kg.1.","Ecosystem.types")]
+                            "NH4...mg.kg.1.","pH","SOC..g.kg.1.","Ecosystem.types","Soil.moisture....",
+                        "AOA..copy.numbers.g.1.dry.soil.","AOB..copy.numbers.g.1.dry.soil.","nirS...copy.numbers.g.1.dry.soil.",
+                        "nirK...copy.numbers.g.1.dry.soil.","nosZ...copy.numbers.g.1.dry.soil.")]
 names(liao_pot2) <- c("ref","site","year","lat","lon","Nfer_mgkg",
-                        "z","n2o_ugm2h","totaln_gkg","no3_mgkg","nh4_mgkg","pH","soc_gkg","pft")
+                        "z","n2o_ugm2h","totaln_gkg","no3_mgkg","nh4_mgkg","pH","soc_gkg","pft","obs_moisture",
+                      "AOA","AOB","nirS","nirK","nosZ")
 liao_pot2[liao_pot2 == -9999] <- NA
 
 liao_pot2$method <- "pot"
+liao_pot2$obs_moisture <- liao_pot2$obs_moisture/100
 
 #correct start_yr
 unique(liao_pot2$year)
@@ -260,8 +267,8 @@ summary(site_ingest)
 site_ingest_df<- site_ingest[,c("lon","lat","z","start_yr","end_yr")]
 names(site_ingest_df) <- c("lon","lat","elv","year_start","year_end")
 site_ingest_df$sitename <- paste("ingest",c(1:nrow(site_ingest_df)),sep="")
-csvfile <- paste("~/data/n2o_Yunke/forcing/siteinfo_measurementyear.csv")
-write_csv(site_ingest_df, path = csvfile)
+#csvfile <- paste("~/data/n2o_Yunke/forcing/siteinfo_measurementyear.csv")
+#write_csv(site_ingest_df, path = csvfile)
 
 #conver n2o original data's year, too.
 all_n2o_z$start_yr[is.na(all_n2o_z$start_yr)==T] <- 1991
@@ -286,8 +293,14 @@ allpredictors <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_predictors.csv")
 allpredictors <- allpredictors[,!(names(allpredictors) %in% c("sitename"))]
 all_n2o_df <- merge(all_n2o_z2,allpredictors,by=c("lon","lat","z"),all.x=TRUE)
 
-#start analysis
+#read soil moisture and alpha
+moisture <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_measurementyear_moisture_alpha.csv")
+moisture<- moisture[,c("lon","lat","elv","year_start","year_end","soil_moisture","alpha")]
+names(moisture) <- c("lon","lat","z","start_yr","end_yr","moisture_splash","alpha_splash")
+all_n2o_df <- merge(all_n2o_df,moisture,by=c("lon","lat","z","start_yr","end_yr"),all.x=TRUE)
+summary(all_n2o_df)
 
+#expected
 #first, look at data-driven model with nfer
 all_n2o_df$n2o_ugm2h[all_n2o_df$n2o_ugm2h<=0] <- NA
 all_n2o_df$n2o_a <- log(all_n2o_df$n2o_ugm2h)
@@ -314,7 +327,10 @@ all_n2o_df$obs_totalN_a <- log(all_n2o_df$totaln_gkg)
 all_n2o_df$mineral_N <- (all_n2o_df$nh4_mgkg+all_n2o_df$no3_mgkg)
 all_n2o_df$obs_mineral_N_a <- log(all_n2o_df$mineral_N)
 
-
+#plot nfer tilisation
+ggplot(subset(all_n2o_df,pft=="cropland"|pft=="forest"|pft=="grassland"|pft=="fallow"),
+       aes(x=Nfer_kgha,y=n2o_a,color=pft))+geom_point()
+summary(lm(Nfer_kgha~n2o_a,data=subset(all_n2o_df,pft=="cropland"|pft=="forest"|pft=="grassland"|pft=="fallow")))
 forest <- subset(all_n2o_df,pft=="forest")
 dim(forest)
 forest %>% group_by(file)  %>% summarise(number = n())
@@ -337,20 +353,29 @@ forest2 <- subset(forest,is.na(rep)==T)
 dim(forest2)
 
 #check
+forest2$Nfer_kgha[is.na(forest2$nfer_a)==T] <-0
+
 forest2_field <- subset(forest2,method=="field")
-dim(forest2_field)
+forest2_field$AOB/forest2_field$nosZ
+summary((lmer(n2o_a~obs_moisture+(1|site_a),data=forest2_field)))
+
+summary((lmer(n2o_a~Nfer_kgha+(1|site_a),data=forest2_field)))
+summary((lmer(n2o_a~alpha_splash+(1|site_a),data=forest2_field)))
+plot(obs_moisture~obs_moisture,data=forest2_field)
+
 forest2_field_natural <- subset(forest2_field,is.na(Nfer_kgha)==T|Nfer_kgha==0)
 dim(forest2_field_natural)
 
 forest2_field_natural_all <- (na.omit(forest2_field_natural[,c("site_a","n2o_a","orgc_a","pH_a","totaln_a",
-                                   "Tg_a","vpd_a","fAPAR_a","CNrt_a","ndep_a","gpp_a")]))
+                                   "Tg_a","vpd_a","fAPAR_a","CNrt_a","ndep_a","gpp_a","moisture_splash","alpha_splash")]))
 stepwise(forest2_field_natural_all,"n2o_a")[[1]]
 stepwise(forest2_field_natural_all,"n2o_a")[[2]]
-mod1<- (lmer(n2o_a~Tg_a+pH_a+CNrt_a+
+mod1<- (lmer(n2o_a~Tg_a+pH_a+moisture_splash+
                (1|site_a),data=forest2_field_natural_all))
+summary(mod1)
 n1a <- visreg(mod1,"Tg_a",type="contrast")
 n1b <- visreg(mod1,"pH_a",type="contrast")
-n1c <- visreg(mod1,"CNrt_a",type="contrast")
+n1c <- visreg(mod1,"moisture_splash",type="contrast")
 
 summary(mod1)
 r.squaredGLMM(mod1)
@@ -360,10 +385,6 @@ sp::plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
 coord <- na.omit(forest2_field_natural[,c("site_a","n2o_a","orgc_a","pH_a","totaln_a",
                                  "Tg_a","vpd_a","fAPAR_a","CNrt_a","ndep_a","gpp_a","lon","lat")])
 points(coord$lon,coord$lat, col="green", pch=16,cex=1)
-
-forest2_field_natural_all2 <- (na.omit(forest2_field_natural[,c("site_a","n2o_a","orgc_a","pH_a","totaln_a",
-                                                               "Tg_sites_a","vpd_sites_a","fAPAR_a","CNrt_a","ndep_a","gpp_a")]))
-
 
 #grassland - check rep
 unique(all_n2o_df$pft)
@@ -383,6 +404,17 @@ dim(grassland2)
 #check
 grassland2_field <- subset(grassland2,method=="field")
 dim(grassland2_field)
+summary(grassland2_field$Nfer_kgha)
+unique(subset(grassland2_field,is.na(Nfer_kgha)==T)$file)#all convert to 0
+grassland2_field$Nfer_kgha[is.na(grassland2_field$Nfer_kgha)==T] <- 0
+summary(lmer(n2o_a~Nfer_kgha+fAPAR_a+(1|site_a),data=grassland2_field))
+
+grassland2_field_natural_all <- (na.omit(grassland2_field[,c("site_a","Nfer_kgha","n2o_a","orgc_a","pH_a","ndep_a",
+                                                                     "Tg_a","fAPAR_a","CNrt_a","gpp_a")]))
+
+stepwise(grassland2_field_natural_all,"n2o_a")[[1]]
+stepwise(grassland2_field_natural_all,"n2o_a")[[2]]
+
 grassland2_field_natural <- subset(grassland2_field,is.na(Nfer_kgha)==T|Nfer_kgha==0)
 dim(grassland2_field_natural)
 
@@ -427,6 +459,9 @@ n3a <- visreg(mod3,"gpp_a",type="contrast")
 cropland <- subset(all_n2o_df,pft=="cropland")
 dim(cropland)
 unique_coord_n2o <- as.data.frame(cropland %>% group_by(lon,lat,file)  %>% summarise(n2o = mean(n2o_ugm2h,na.rm=T)))
+newmap <- getMap(resolution = "low")
+sp::plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
+points(unique_coord_n2o$lon,unique_coord_n2o$lat, col="blue", pch=16,cex=1)
 
 merged_coord <- merge(subset(unique_coord_n2o,file=="cui et al. nature food"),
                       subset(unique_coord_n2o,file=="Liao et al. gcb"),
@@ -451,6 +486,6 @@ stepwise(cropland2_field_natural_all,"n2o_a")[[2]]
 mod3<- (lmer(n2o_a~ndep_a+
                (1|site_a),data=cropland2_field_natural_all))
 summary(mod3)
-
+r.squaredGLMM(mod3)
 cropfallow <- rbind(cropland2_field_natural_all,fallow2_field_natural_all)
 stepwise(cropfallow,"n2o_a")[[2]]

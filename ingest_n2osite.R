@@ -33,3 +33,5 @@ for (i in 1:(nrow(siteinfo_final))){
   csvfile <- paste("~/data/n2o_Yunke/ingest_data/",siteinfo_final$sitename[i],".csv",sep = "")
   write.csv(ddf_meteo, csvfile, row.names = TRUE)
 }
+
+#if needed - for fapar (years = 2001-2015, using code from ~/yunkepeng/nimpl_sofun_inputs/forest/Reprocessing_fpar_climates_forest.R)
