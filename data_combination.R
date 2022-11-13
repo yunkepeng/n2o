@@ -30,6 +30,7 @@ library("PerformanceAnalytics")
 library(MuMIn)
 library(car)
 library(visreg)
+library(readr)
 ### Liao et al. 2020 GCB: https://onlinelibrary.wiley.com/doi/full/10.1111/gcb.16365
 #1a: field-based n2o
 liao_field <- read.csv("~/data/n2o_liao/org/Global_change_biology_GCB-22-1572_primary_field_data.csv")
@@ -299,6 +300,7 @@ moisture<- moisture[,c("lon","lat","elv","year_start","year_end","soil_moisture"
 names(moisture) <- c("lon","lat","z","start_yr","end_yr","moisture_splash","alpha_splash")
 all_n2o_df <- merge(all_n2o_df,moisture,by=c("lon","lat","z","start_yr","end_yr"),all.x=TRUE)
 summary(all_n2o_df)
+#QQQ: check NA values in Tg_sites and moisture_splash -> they might record wrong coordinates in literatures!
 
 #expected
 #first, look at data-driven model with nfer
@@ -306,6 +308,8 @@ all_n2o_df$n2o_ugm2h[all_n2o_df$n2o_ugm2h<=0] <- NA
 all_n2o_df$n2o_a <- log(all_n2o_df$n2o_ugm2h)
 all_n2o_df$Tg_a <- all_n2o_df$Tg
 all_n2o_df$PPFD_a <- log(all_n2o_df$PPFD)
+all_n2o_df$PPFD_total_a <- log(all_n2o_df$PPFD_total)
+
 all_n2o_df$vpd_a <- log(all_n2o_df$vpd)
 all_n2o_df$Tg_sites_a <- all_n2o_df$Tg_sites
 all_n2o_df$PPFD_sites_a <- log(all_n2o_df$PPFD_sites)
@@ -356,35 +360,15 @@ dim(forest2)
 forest2$Nfer_kgha[is.na(forest2$nfer_a)==T] <-0
 
 forest2_field <- subset(forest2,method=="field")
-forest2_field$AOB/forest2_field$nosZ
-summary((lmer(n2o_a~obs_moisture+(1|site_a),data=forest2_field)))
 
-summary((lmer(n2o_a~Nfer_kgha+(1|site_a),data=forest2_field)))
-summary((lmer(n2o_a~alpha_splash+(1|site_a),data=forest2_field)))
-plot(obs_moisture~obs_moisture,data=forest2_field)
+test1 <- (na.omit(forest2_field[,c("site_a","n2o_a","orgc_a","Nfer_kgha",
+                                   "pH_a","ndep_a","obs_moisture",
+                                   "Tg_a","vpd_a","CNrt_a","gpp_a")]))
+stepwise(test1,"n2o_a")[[2]]
 
-forest2_field_natural <- subset(forest2_field,is.na(Nfer_kgha)==T|Nfer_kgha==0)
-dim(forest2_field_natural)
-
-forest2_field_natural_all <- (na.omit(forest2_field_natural[,c("site_a","n2o_a","orgc_a","pH_a","totaln_a",
-                                   "Tg_a","vpd_a","fAPAR_a","CNrt_a","ndep_a","gpp_a","moisture_splash","alpha_splash")]))
-stepwise(forest2_field_natural_all,"n2o_a")[[1]]
-stepwise(forest2_field_natural_all,"n2o_a")[[2]]
-mod1<- (lmer(n2o_a~Tg_a+pH_a+moisture_splash+
-               (1|site_a),data=forest2_field_natural_all))
-summary(mod1)
-n1a <- visreg(mod1,"Tg_a",type="contrast")
-n1b <- visreg(mod1,"pH_a",type="contrast")
-n1c <- visreg(mod1,"moisture_splash",type="contrast")
-
-summary(mod1)
-r.squaredGLMM(mod1)
-unique(forest2_field_natural$file)
-newmap <- getMap(resolution = "low")
-sp::plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
-coord <- na.omit(forest2_field_natural[,c("site_a","n2o_a","orgc_a","pH_a","totaln_a",
-                                 "Tg_a","vpd_a","fAPAR_a","CNrt_a","ndep_a","gpp_a","lon","lat")])
-points(coord$lon,coord$lat, col="green", pch=16,cex=1)
+mod1 <- (lmer(n2o_a~Tg_a+obs_moisture+(1|site_a),data=forest2_field))
+n1b <- visreg(mod1,"obs_moisture",type="contrast")
+n1c <- visreg(mod1,"Tg_a",type="contrast")
 
 #grassland - check rep
 unique(all_n2o_df$pft)
@@ -407,61 +391,22 @@ dim(grassland2_field)
 summary(grassland2_field$Nfer_kgha)
 unique(subset(grassland2_field,is.na(Nfer_kgha)==T)$file)#all convert to 0
 grassland2_field$Nfer_kgha[is.na(grassland2_field$Nfer_kgha)==T] <- 0
-summary(lmer(n2o_a~Nfer_kgha+fAPAR_a+(1|site_a),data=grassland2_field))
 
-grassland2_field_natural_all <- (na.omit(grassland2_field[,c("site_a","Nfer_kgha","n2o_a","orgc_a","pH_a","ndep_a",
-                                                                     "Tg_a","fAPAR_a","CNrt_a","gpp_a")]))
+test2 <- (na.omit(grassland2_field[,c("site_a","n2o_a","orgc_a","Nfer_kgha",
+                                   "pH_a","ndep_a",
+                                   "Tg_a","vpd_a","CNrt_a","gpp_a")]))
+stepwise(test2,"n2o_a")[[1]]
 
-stepwise(grassland2_field_natural_all,"n2o_a")[[1]]
-stepwise(grassland2_field_natural_all,"n2o_a")[[2]]
-
-grassland2_field_natural <- subset(grassland2_field,is.na(Nfer_kgha)==T|Nfer_kgha==0)
-dim(grassland2_field_natural)
-
-grassland2_field_natural_all <- (na.omit(grassland2_field_natural[,c("site_a","n2o_a","orgc_a","pH_a","totaln_a","ndep_a",
-                                                               "Tg_a","vpd_a","fAPAR_a","CNrt_a","gpp_a")]))
-stepwise(grassland2_field_natural_all,"n2o_a")[[1]]
-stepwise(grassland2_field_natural_all,"n2o_a")[[2]]
-mod2<- (lmer(n2o_a~ndep_a+
-               (1|site_a),data=grassland2_field_natural_all))
+mod2<- (lmer(n2o_a~Nfer_kgha+(1|site_a),data=grassland2_field))
 summary(mod2)
 r.squaredGLMM(mod2)
-n2a <- visreg(mod2,"ndep_a",type="contrast")
+n2a <- visreg(mod2,"Nfer_kgha",type="contrast")
 
-newmap <- getMap(resolution = "low")
-sp::plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
-coord <- na.omit(grassland2_field_natural[,c("site_a","lon","lat","n2o_a","orgc_a","pH_a","totaln_a",
-                                          "Tg_a","vpd_a","fAPAR_a","CNrt_a","ndep_a","gpp_a","lon","lat")])
-points(coord$lon,coord$lat, col="blue", pch=16,cex=1)
-
-#method 2 - using fer vs. non-fer info
-#check
-
-#fallow
-fallow <- subset(all_n2o_df,pft=="fallow")
-unique_coord <- unique(fallow[,c("lon","lat","file","ref")])
-#all ok
-dim(fallow)
-fallow2_field_natural <- subset(fallow,is.na(Nfer_kgha)==T|Nfer_kgha==0)
-dim(grassland2_field_natural)
-
-fallow2_field_natural_all <- (na.omit(fallow2_field_natural[,c("site_a","n2o_a","orgc_a","pH_a","totaln_a","ndep_a",
-                                                                     "Tg_a","vpd_a","fAPAR_a","CNrt_a","gpp_a")]))
-dim(fallow2_field_natural_all)
-stepwise(fallow2_field_natural_all,"n2o_a")[[1]]
-stepwise(fallow2_field_natural_all,"n2o_a")[[2]]
-mod3<- (lmer(n2o_a~gpp_a+
-               (1|site_a),data=fallow2_field_natural_all))
-summary(mod3)
-n3a <- visreg(mod3,"gpp_a",type="contrast")
+summary((lmer(n2o_a~Nfer_kgha+(1|site_a),data=grassland2_field)))
 
 #finally cropland
 cropland <- subset(all_n2o_df,pft=="cropland")
-dim(cropland)
 unique_coord_n2o <- as.data.frame(cropland %>% group_by(lon,lat,file)  %>% summarise(n2o = mean(n2o_ugm2h,na.rm=T)))
-newmap <- getMap(resolution = "low")
-sp::plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
-points(unique_coord_n2o$lon,unique_coord_n2o$lat, col="blue", pch=16,cex=1)
 
 merged_coord <- merge(subset(unique_coord_n2o,file=="cui et al. nature food"),
                       subset(unique_coord_n2o,file=="Liao et al. gcb"),
@@ -475,17 +420,17 @@ cropland2 <- merge(cropland,repeated_column,
                       by=c("lon","lat","file"),all.x=TRUE)
 cropland2$rep
 cropland2 <- subset(cropland2,is.na(rep)==TRUE)
+unique(cropland2$file)
+cropland2_liao <- subset(cropland2,file=="Liao et al. gcb" & method=="field")
+dim(cropland2_liao)
 
-cropland2_field_natural <- subset(cropland2,is.na(Nfer_kgha)==T|Nfer_kgha==0)
-dim(cropland2_field_natural)
-cropland2_field_natural_all <- (na.omit(cropland2_field_natural[,c("site_a","n2o_a","orgc_a","pH_a","totaln_a","ndep_a",
-                                                               "Tg_a","vpd_a","fAPAR_a","CNrt_a","gpp_a")]))
-dim(cropland2_field_natural_all)
-stepwise(cropland2_field_natural_all,"n2o_a")[[1]]
-stepwise(cropland2_field_natural_all,"n2o_a")[[2]]
-mod3<- (lmer(n2o_a~ndep_a+
-               (1|site_a),data=cropland2_field_natural_all))
-summary(mod3)
+test3 <- (na.omit(cropland2[,c("site_a","n2o_a","orgc_a","Nfer_kgha",
+                                      "ndep_a",
+                                      "Tg_a","vpd_a","CNrt_a","gpp_a")]))
+dim(test3)
+stepwise(test3,"n2o_a")[[1]]
+mod3<- ((lmer(n2o_a~Nfer_kgha+gpp_a+(1|site_a),data=test3)))
 r.squaredGLMM(mod3)
-cropfallow <- rbind(cropland2_field_natural_all,fallow2_field_natural_all)
-stepwise(cropfallow,"n2o_a")[[2]]
+summary((lmer(n2o_a~Nfer_kgha+gpp_a+(1|site_a),data=test3)))
+n3a <- visreg(mod3,"Nfer_kgha",type="contrast")
+n3b <- visreg(mod3,"gpp_a",type="contrast")
