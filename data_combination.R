@@ -331,6 +331,8 @@ all_n2o_df$obs_totalN_a <- log(all_n2o_df$totaln_gkg)
 all_n2o_df$mineral_N <- (all_n2o_df$nh4_mgkg+all_n2o_df$no3_mgkg)
 all_n2o_df$obs_mineral_N_a <- log(all_n2o_df$mineral_N)
 
+all_n2o_df$sqrt_Nfer_kgha<- sqrt(all_n2o_df$Nfer_kgha)
+
 #plot nfer tilisation
 ggplot(subset(all_n2o_df,pft=="cropland"|pft=="forest"|pft=="grassland"|pft=="fallow"),
        aes(x=Nfer_kgha,y=n2o_a,color=pft))+geom_point()
@@ -357,18 +359,31 @@ forest2 <- subset(forest,is.na(rep)==T)
 dim(forest2)
 
 #check
-forest2$Nfer_kgha[is.na(forest2$nfer_a)==T] <-0
+forest2$sqrt_Nfer_kgha[is.na(forest2$sqrt_Nfer_kgha)==T] <-0
 
 forest2_field <- subset(forest2,method=="field")
 
-test1 <- (na.omit(forest2_field[,c("site_a","n2o_a","orgc_a","Nfer_kgha",
-                                   "pH_a","ndep_a","obs_moisture",
-                                   "Tg_a","vpd_a","CNrt_a","gpp_a")]))
+test1 <- (na.omit(forest2_field[,c("site_a","n2o_a","orgc_a","sqrt_Nfer_kgha",
+                                   "ndep_a","obs_moisture", #remove pH_a and vpd_a
+                                   "Tg_a","CNrt_a","gpp_a")]))
 stepwise(test1,"n2o_a")[[2]]
 
 mod1 <- (lmer(n2o_a~Tg_a+obs_moisture+(1|site_a),data=forest2_field))
+summary(mod1)
+r.squaredGLMM(mod1)
 n1b <- visreg(mod1,"obs_moisture",type="contrast")
 n1c <- visreg(mod1,"Tg_a",type="contrast")
+
+r.squaredGLMM(lmer(n2o_a~sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
+
+#nothing changed
+test1a <- (na.omit(forest2_field[,c("site_a","n2o_a","orgc_a","Nfer_kgha",
+                                   "ndep_a","obs_moisture",
+                                   "Tg_a","CNrt_a","fAPAR_a","PPFD_a")]))
+stepwise(test1a,"n2o_a")[[2]]
+
+collection1 <- unique(subset(forest2_field,is.na(obs_moisture)==F)[,c("lon","lat","z","start_yr","end_yr")])
+dim(collection1)
 
 #grassland - check rep
 unique(all_n2o_df$pft)
@@ -390,19 +405,24 @@ grassland2_field <- subset(grassland2,method=="field")
 dim(grassland2_field)
 summary(grassland2_field$Nfer_kgha)
 unique(subset(grassland2_field,is.na(Nfer_kgha)==T)$file)#all convert to 0
-grassland2_field$Nfer_kgha[is.na(grassland2_field$Nfer_kgha)==T] <- 0
+grassland2_field$sqrt_Nfer_kgha[is.na(grassland2_field$sqrt_Nfer_kgha)==T] <- 0
 
-test2 <- (na.omit(grassland2_field[,c("site_a","n2o_a","orgc_a","Nfer_kgha",
-                                   "pH_a","ndep_a",
+test2 <- (na.omit(grassland2_field[,c("site_a","n2o_a","orgc_a","sqrt_Nfer_kgha",
+                                   "ndep_a",
                                    "Tg_a","vpd_a","CNrt_a","gpp_a")]))
 stepwise(test2,"n2o_a")[[1]]
+stepwise(test2,"n2o_a")[[2]]
 
-mod2<- (lmer(n2o_a~Nfer_kgha+(1|site_a),data=grassland2_field))
+mod2<- (lmer(n2o_a~sqrt_Nfer_kgha+(1|site_a),data=grassland2_field))
 summary(mod2)
 r.squaredGLMM(mod2)
-n2a <- visreg(mod2,"Nfer_kgha",type="contrast")
+n2a <- visreg(mod2,"sqrt_Nfer_kgha",type="contrast")
 
-summary((lmer(n2o_a~Nfer_kgha+(1|site_a),data=grassland2_field)))
+# 
+
+collection2 <- unique(subset(grassland2_field,is.na(n2o_ugm2h)==F)[,c("lon","lat","z","start_yr","end_yr")])
+dim(collection2)
+
 
 #finally cropland
 cropland <- subset(all_n2o_df,pft=="cropland")
@@ -423,14 +443,25 @@ cropland2 <- subset(cropland2,is.na(rep)==TRUE)
 unique(cropland2$file)
 cropland2_liao <- subset(cropland2,file=="Liao et al. gcb" & method=="field")
 dim(cropland2_liao)
-
-test3 <- (na.omit(cropland2[,c("site_a","n2o_a","orgc_a","Nfer_kgha",
+# firstly, using Liao's data only: cropland2_liao
+test3 <- (na.omit(cropland2_liao[,c("site_a","n2o_a","orgc_a","sqrt_Nfer_kgha",
                                       "ndep_a",
                                       "Tg_a","vpd_a","CNrt_a","gpp_a")]))
 dim(test3)
 stepwise(test3,"n2o_a")[[1]]
-mod3<- ((lmer(n2o_a~Nfer_kgha+gpp_a+(1|site_a),data=test3)))
+stepwise(test3,"n2o_a")[[2]]
+mod3<- ((lmer(n2o_a~sqrt_Nfer_kgha+gpp_a+orgc_a+(1|site_a),data=test3)))
 r.squaredGLMM(mod3)
-summary((lmer(n2o_a~Nfer_kgha+gpp_a+(1|site_a),data=test3)))
-n3a <- visreg(mod3,"Nfer_kgha",type="contrast")
+summary((lmer(n2o_a~sqrt_Nfer_kgha+gpp_a+orgc_a+(1|site_a),data=test3)))
 n3b <- visreg(mod3,"gpp_a",type="contrast")
+n3a <- visreg(mod3,"sqrt_Nfer_kgha",type="contrast")
+n3b <- visreg(mod3,"orgc_a",type="contrast")
+
+
+collection3 <- unique(subset(cropland2_liao,is.na(n2o_ugm2h)==F)[,c("lon","lat","z","start_yr","end_yr")])
+dim(collection3)
+
+
+all_collection <- as.data.frame(rbind(collection1,collection2,collection3))
+dim(all_collection)
+(all_collection)
