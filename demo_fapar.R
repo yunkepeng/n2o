@@ -1,4 +1,6 @@
 library(doSNOW)
+devtools::load_all("/Users/yunpeng/yunkepeng/latest_packages/ingestr/")
+
 settings_modis <- get_settings_modis(
   bundle            = "modis_fpar",
   data_path         = "~/data/n2o_fapar/",
