@@ -31,6 +31,8 @@ library(MuMIn)
 library(car)
 library(visreg)
 library(readr)
+library(matrixStats)
+library(car)
 ### Liao et al. 2020 GCB: https://onlinelibrary.wiley.com/doi/full/10.1111/gcb.16365
 #1a: field-based n2o
 liao_field <- read.csv("~/data/n2o_liao/org/Global_change_biology_GCB-22-1572_primary_field_data.csv")
@@ -271,7 +273,7 @@ site_ingest_df$sitename <- paste("ingest",c(1:nrow(site_ingest_df)),sep="")
 #csvfile <- paste("~/data/n2o_Yunke/forcing/siteinfo_measurementyear.csv")
 #write_csv(site_ingest_df, path = csvfile)
 
-#conver n2o original data's year, too.
+#convert n2o original data's year, too.
 all_n2o_z$start_yr[is.na(all_n2o_z$start_yr)==T] <- 1991
 all_n2o_z$end_yr[is.na(all_n2o_z$end_yr)==T] <- 2010
 all_n2o_z$end_yr[all_n2o_z$start_yr<1980]<-1989
@@ -302,8 +304,33 @@ all_n2o_df <- merge(all_n2o_df,moisture,by=c("lon","lat","z","start_yr","end_yr"
 summary(all_n2o_df)
 #QQQ: check NA values in Tg_sites and moisture_splash -> they might record wrong coordinates in literatures!
 
+#add fapar3g (monthly max and mean)
+fapar3g <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_measurementyear_fapar3g.csv")
+dim(fapar3g) #using 6:nrow(fapar3g) and calculate its max and average value
+max_fapar <- rowMaxs(as.matrix(fapar3g[,c(6:ncol(fapar3g))]),na.rm=T)
+mean_fapar <- rowMeans(fapar3g[,c(6:ncol(fapar3g))],na.rm=T)
+
+fapar3g_df <- fapar3g[,c("lon","lat","z","year_start","year_end")]
+names(fapar3g_df) <- c("lon","lat","z","start_yr","end_yr")
+fapar3g_df$max_fapar <- max_fapar
+fapar3g_df$mean_fapar <- mean_fapar
+
+all_n2o_df <- merge(all_n2o_df,fapar3g_df,by=c("lon","lat","z","start_yr","end_yr"),all.x=TRUE)
+summary(all_n2o_df)
+
+#merge with modis_fapar
+modis1 <- read.csv("/Users/yunpeng/data/n2o_Yunke/forcing/siteinfo_fapar_nfocal0.csv")
+modis2 <- read.csv("/Users/yunpeng/data/n2o_Yunke/forcing/siteinfo_fapar_nfocal2.csv")
+modis_fapar <- as.data.frame(rbind(modis1,modis2))
+modis_fapar <- modis_fapar[,c("lon","lat","z","start_yr","end_yr","max_fapar","mean_fapar")]
+names(modis_fapar) <- c("lon","lat","z","start_yr","end_yr","max_fapar_modis","mean_fapar_modis")
+modis_fapar <- unique(na.omit(modis_fapar))
+all_n2o_df <- merge(all_n2o_df,modis_fapar,by=c("lon","lat","z","start_yr","end_yr"),all.x=TRUE)
+
 #expected
 #first, look at data-driven model with nfer
+all_n2o_df$max_fapar[all_n2o_df$max_fapar==-Inf] <- NA
+all_n2o_df$max_mean_fapar <- all_n2o_df$max_fapar - all_n2o_df$mean_fapar
 all_n2o_df$n2o_ugm2h[all_n2o_df$n2o_ugm2h<=0] <- NA
 all_n2o_df$n2o_a <- log(all_n2o_df$n2o_ugm2h)
 all_n2o_df$Tg_a <- all_n2o_df$Tg
@@ -363,10 +390,12 @@ forest2$sqrt_Nfer_kgha[is.na(forest2$sqrt_Nfer_kgha)==T] <-0
 
 forest2_field <- subset(forest2,method=="field")
 
-test1 <- (na.omit(forest2_field[,c("site_a","n2o_a","orgc_a","sqrt_Nfer_kgha",
-                                   "ndep_a","obs_moisture", #remove pH_a and vpd_a
-                                   "Tg_a","CNrt_a","gpp_a")]))
-stepwise(test1,"n2o_a")[[2]]
+test1 <- (na.omit(forest2_field[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","CNrt_a","ndep_a",
+                                   "obs_moisture","Tg_a",
+                                   "PPFD_total_a","PPFD_a",
+                                   "max_fapar","mean_fapar","max_mean_fapar")]))
+dim(test1)
+stepwise(test1,"n2o_a")[[1]]
 
 mod1 <- (lmer(n2o_a~Tg_a+obs_moisture+(1|site_a),data=forest2_field))
 summary(mod1)
@@ -374,20 +403,24 @@ r.squaredGLMM(mod1)
 n1b <- visreg(mod1,"obs_moisture",type="contrast")
 n1c <- visreg(mod1,"Tg_a",type="contrast")
 
-r.squaredGLMM(lmer(n2o_a~sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
+#add one more?
+summary(lmer(n2o_a~Tg_a+obs_moisture+sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
+r.squaredGLMM(lmer(n2o_a~Tg_a+obs_moisture+sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
 
-#nothing changed
-test1a <- (na.omit(forest2_field[,c("site_a","n2o_a","orgc_a","Nfer_kgha",
-                                   "ndep_a","obs_moisture",
-                                   "Tg_a","CNrt_a","fAPAR_a","PPFD_a")]))
-stepwise(test1a,"n2o_a")[[2]]
+#test2
+test2 <- (na.omit(forest2_field[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","CNrt_a","ndep_a",
+                                   "vpd_a","Tg_a",
+                                   "PPFD_total_a","PPFD_a",
+                                   "max_fapar","mean_fapar","max_mean_fapar")]))
+dim(test2)
+stepwise(test2,"n2o_a")[[1]]
 
-collection1 <- unique(subset(forest2_field,is.na(obs_moisture)==F)[,c("lon","lat","z","start_yr","end_yr")])
-dim(collection1)
+summary(lmer(n2o_a~Tg_a+sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
+r.squaredGLMM(lmer(n2o_a~Tg_a+sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
 
 #grassland - check rep
 unique(all_n2o_df$pft)
-grassland <- subset(all_n2o_df,pft=="grassland")
+grassland <- subset(all_n2o_df,pft=="grassland"|pft=="Tropical pastures"|pft=="Savanna")
 unique_coord <- unique(grassland[,c("lon","lat","file","ref")])
 grassland$rep<-NA
 grassland$rep[grassland$lon==172.50 & grassland$lat==-43.50] <- "rep"
@@ -407,9 +440,10 @@ summary(grassland2_field$Nfer_kgha)
 unique(subset(grassland2_field,is.na(Nfer_kgha)==T)$file)#all convert to 0
 grassland2_field$sqrt_Nfer_kgha[is.na(grassland2_field$sqrt_Nfer_kgha)==T] <- 0
 
-test2 <- (na.omit(grassland2_field[,c("site_a","n2o_a","orgc_a","sqrt_Nfer_kgha",
-                                   "ndep_a",
-                                   "Tg_a","vpd_a","CNrt_a","gpp_a")]))
+test2 <- (na.omit(grassland2_field[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","CNrt_a","ndep_a",
+                                   "Tg_a",
+                                   "PPFD_total_a","PPFD_a",
+                                   "max_fapar","mean_fapar","max_mean_fapar")]))
 stepwise(test2,"n2o_a")[[1]]
 stepwise(test2,"n2o_a")[[2]]
 
@@ -418,50 +452,86 @@ summary(mod2)
 r.squaredGLMM(mod2)
 n2a <- visreg(mod2,"sqrt_Nfer_kgha",type="contrast")
 
-# 
+mod2<- (lmer(n2o_a~sqrt_Nfer_kgha+mean_fapar+(1|site_a),data=grassland2_field))
+summary(mod2)
 
+# 
 collection2 <- unique(subset(grassland2_field,is.na(n2o_ugm2h)==F)[,c("lon","lat","z","start_yr","end_yr")])
 dim(collection2)
 
 
 #finally cropland
-cropland <- subset(all_n2o_df,pft=="cropland")
-unique_coord_n2o <- as.data.frame(cropland %>% group_by(lon,lat,file)  %>% summarise(n2o = mean(n2o_ugm2h,na.rm=T)))
-
-merged_coord <- merge(subset(unique_coord_n2o,file=="cui et al. nature food"),
-                      subset(unique_coord_n2o,file=="Liao et al. gcb"),
-                      by=c("lon","lat"),all.x=TRUE,all.y=TRUE)
+cropland <- subset(all_n2o_df,pft=="cropland"|pft=="plantation"|pft=="fallow"|pft=="bare")
+#unique_coord_n2o <- as.data.frame(cropland %>% group_by(lon,lat,file)  %>% summarise(n2o = mean(n2o_ugm2h,na.rm=T)))
+#merged_coord <- merge(subset(unique_coord_n2o,file=="cui et al. nature food"),
+#                      subset(unique_coord_n2o,file=="Liao et al. gcb"),
+#                      by=c("lon","lat"),all.x=TRUE,all.y=TRUE)
 #QQQ: why cui and liao are so differ?
 #at least, this plots from cui should be removed
-repeated_column <- subset(merged_coord,is.na(file.x)==F & is.na(file.y)==F)[,c("lon","lat","file.x")]
-names(repeated_column) <- c("lon","lat","file")
-repeated_column$rep <- "rep"
-cropland2 <- merge(cropland,repeated_column,
-                      by=c("lon","lat","file"),all.x=TRUE)
-cropland2$rep
-cropland2 <- subset(cropland2,is.na(rep)==TRUE)
-unique(cropland2$file)
-cropland2_liao <- subset(cropland2,file=="Liao et al. gcb" & method=="field")
-dim(cropland2_liao)
+#repeated_column <- subset(merged_coord,is.na(file.x)==F & is.na(file.y)==F)[,c("lon","lat","file.x")]
+#names(repeated_column) <- c("lon","lat","file")
+#repeated_column$rep <- "rep"
+#cropland2 <- merge(cropland,repeated_column,
+#                      by=c("lon","lat","file"),all.x=TRUE)
+#cropland2$rep
+#cropland2 <- subset(cropland2,is.na(rep)==TRUE)
+#unique(cropland2$file)
+#cropland2_liao <- subset(cropland2,file=="Liao et al. gcb" & method=="field")
+#dim(cropland2_liao)
 # firstly, using Liao's data only: cropland2_liao
-test3 <- (na.omit(cropland2_liao[,c("site_a","n2o_a","orgc_a","sqrt_Nfer_kgha",
-                                      "ndep_a",
-                                      "Tg_a","vpd_a","CNrt_a","gpp_a")]))
+#test3 <- (na.omit(cropland2_liao[,c("site_a","n2o_a","orgc_a","sqrt_Nfer_kgha",
+#                                      "ndep_a",
+#                                      "Tg_a","vpd_a","CNrt_a","gpp_a")]))
+cropland2_liao <- subset(cropland,file=="Liao et al. gcb")
+dim(cropland2_liao)
+#obs. moisture is completely non-significant, so removed here to produce more sites
+#remove soil cn and ppfd_a here
+test3 <- (na.omit(cropland2_liao[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","ndep_a",
+                                   "vpd_a","Tg_a",
+                                   "PPFD_total_a",
+                                   "max_fapar","mean_fapar","max_mean_fapar")]))
+
 dim(test3)
 stepwise(test3,"n2o_a")[[1]]
 stepwise(test3,"n2o_a")[[2]]
-mod3<- ((lmer(n2o_a~sqrt_Nfer_kgha+gpp_a+orgc_a+(1|site_a),data=test3)))
-r.squaredGLMM(mod3)
-summary((lmer(n2o_a~sqrt_Nfer_kgha+gpp_a+orgc_a+(1|site_a),data=test3)))
-n3b <- visreg(mod3,"gpp_a",type="contrast")
-n3a <- visreg(mod3,"sqrt_Nfer_kgha",type="contrast")
-n3b <- visreg(mod3,"orgc_a",type="contrast")
+mod3<- ((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+ndep_a+vpd_a+
+                max_fapar+mean_fapar+(1|site_a),data=test3)))
 
+r.squaredGLMM(mod3)
+summary(mod3)
+
+visreg(mod3,"sqrt_Nfer_kgha",type="contrast")
+visreg(mod3,"orgc_a",type="contrast")
+visreg(mod3,"PPFD_total_a",type="contrast")
+visreg(mod3,"ndep_a",type="contrast")
+visreg(mod3,"vpd_a",type="contrast")
+
+visreg(mod3,"max_fapar",type="contrast")
+visreg(mod3,"mean_fapar",type="contrast")
+
+
+summary((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+ndep_a+vpd_a+
+                max_fapar+mean_fapar+(1|site_a),data=test3)))
+
+summary((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+ndep_a+vpd_a+
+                max_fapar+(1|site_a),data=test3)))
+
+summary((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+ndep_a+vpd_a+
+                max_fapar+CNrt_a+(1|site_a),data=test3)))
+
+#have a look at 
 
 collection3 <- unique(subset(cropland2_liao,is.na(n2o_ugm2h)==F)[,c("lon","lat","z","start_yr","end_yr")])
 dim(collection3)
 
 
 all_collection <- as.data.frame(rbind(collection1,collection2,collection3))
-dim(all_collection)
-(all_collection)
+all_collection$sitename <- paste0("site",c(1:nrow(all_collection)))
+#csvfile <- paste("~/data/n2o_fapar/fapar_siteinfo.csv")
+#write_csv(all_collection, path = csvfile)
+
+#check pft
+df1 <- unique(subset(all_n2o_df_removal,file!="cui et al. nature food" & method=="field" &is.na(n2o_ugm2h)==F)[,c("lon","lat","z","start_yr","end_yr","pft")])
+dim(df1)
+as.data.frame(df1 %>% group_by(pft)  %>% summarise(number = n()))
+
