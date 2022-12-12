@@ -125,7 +125,7 @@ Tg_site <- tmx_site*(0.5+((1-xx^2)^(0.5))/(2*acos(xx)))+ tmn_site*(0.5-((1-xx^2)
 Tg_site[Tg_site =="NaN"] <- NA
 Tg_site[Tg_site < 0] <- NA
 
-#1014 are site numbers, 288 are total months
+#1014 are site numbers
 dim(Tg_site)
 
 rm(monthly_tmn)
@@ -204,7 +204,7 @@ for (i in c(1:nrow(gwr_sites))){
 fAPAR_site <- gwr_sites[,c(8:295)]
 dim(fAPAR_site)
 dim(Tg_site)
-fAPAR_growing <- fAPAR_sites+Tg_site-Tg_site # + and then - to remove those non-growing months (shown as NA in Tg_sites)
+fAPAR_growing <- fAPAR_site+Tg_site-Tg_site # + and then - to remove those non-growing months (shown as NA in Tg_sites)
 
 gwr_sites_final <- gwr_sites[,c(1:7)]
 
