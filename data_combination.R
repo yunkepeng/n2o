@@ -318,17 +318,22 @@ fapar3g_df$mean_fapar <- mean_fapar
 all_n2o_df <- merge(all_n2o_df,fapar3g_df,by=c("lon","lat","z","start_yr","end_yr"),all.x=TRUE)
 summary(all_n2o_df)
 
-#merge with modis_fapar
-modis1 <- read.csv("/Users/yunpeng/data/n2o_Yunke/forcing/siteinfo_fapar_nfocal0.csv")
-modis2 <- read.csv("/Users/yunpeng/data/n2o_Yunke/forcing/siteinfo_fapar_nfocal2.csv")
-modis_fapar <- as.data.frame(rbind(modis1,modis2))
-modis_fapar <- modis_fapar[,c("lon","lat","z","start_yr","end_yr","max_fapar","mean_fapar")]
-names(modis_fapar) <- c("lon","lat","z","start_yr","end_yr","max_fapar_modis","mean_fapar_modis")
-modis_fapar <- unique(na.omit(modis_fapar))
-all_n2o_df <- merge(all_n2o_df,modis_fapar,by=c("lon","lat","z","start_yr","end_yr"),all.x=TRUE)
+#add fapar_modis, monthly max and mean
+#add fapar3g (monthly max and mean)
+fapar_modis <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_measurementyear_fapar_modis.csv")
+head(fapar_modis)
+
+fapar_modis <- fapar_modis[,c("lon","lat","elv","year_start","year_end","max_fapar","mean_fapar")]
+names(fapar_modis) <- c("lon","lat","z","start_yr","end_yr","max_fapar_modis","mean_fapar_modis")
+
+all_n2o_df <- merge(all_n2o_df,fapar_modis,by=c("lon","lat","z","start_yr","end_yr"),all.x=TRUE)
+summary(all_n2o_df)
 
 #expected
 #first, look at data-driven model with nfer
+all_n2o_df$max_mean_fapar_modis <- all_n2o_df$max_fapar_modis-all_n2o_df$mean_fapar_modis
+all_n2o_df$mean_fapar[all_n2o_df$mean_fapar>1] <- NA
+all_n2o_df$max_fapar[all_n2o_df$max_fapar>1] <- NA
 all_n2o_df$max_fapar[all_n2o_df$max_fapar==-Inf] <- NA
 all_n2o_df$max_mean_fapar <- all_n2o_df$max_fapar - all_n2o_df$mean_fapar
 all_n2o_df$n2o_ugm2h[all_n2o_df$n2o_ugm2h<=0] <- NA
@@ -393,7 +398,7 @@ forest2_field <- subset(forest2,method=="field")
 test1 <- (na.omit(forest2_field[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","CNrt_a","ndep_a",
                                    "obs_moisture","Tg_a",
                                    "PPFD_total_a","PPFD_a",
-                                   "max_fapar","mean_fapar","max_mean_fapar")]))
+                                   "max_fapar_modis","mean_fapar_modis","max_mean_fapar_modis")]))
 dim(test1)
 stepwise(test1,"n2o_a")[[1]]
 
@@ -411,7 +416,7 @@ r.squaredGLMM(lmer(n2o_a~Tg_a+obs_moisture+sqrt_Nfer_kgha+(1|site_a),data=forest
 test2 <- (na.omit(forest2_field[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","CNrt_a","ndep_a",
                                    "vpd_a","Tg_a",
                                    "PPFD_total_a","PPFD_a",
-                                   "max_fapar","mean_fapar","max_mean_fapar")]))
+                                   "max_fapar_modis","mean_fapar_modis","max_mean_fapar_modis")]))
 dim(test2)
 stepwise(test2,"n2o_a")[[1]]
 
@@ -443,21 +448,15 @@ grassland2_field$sqrt_Nfer_kgha[is.na(grassland2_field$sqrt_Nfer_kgha)==T] <- 0
 test2 <- (na.omit(grassland2_field[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","CNrt_a","ndep_a",
                                    "Tg_a",
                                    "PPFD_total_a","PPFD_a",
-                                   "max_fapar","mean_fapar","max_mean_fapar")]))
+                                   "max_fapar_modis","mean_fapar_modis","max_mean_fapar_modis")]))
 stepwise(test2,"n2o_a")[[1]]
 stepwise(test2,"n2o_a")[[2]]
 
-mod2<- (lmer(n2o_a~sqrt_Nfer_kgha+(1|site_a),data=grassland2_field))
+mod2<- (lmer(n2o_a~sqrt_Nfer_kgha+mean_fapar_modis+(1|site_a),data=grassland2_field))
 summary(mod2)
 r.squaredGLMM(mod2)
 n2a <- visreg(mod2,"sqrt_Nfer_kgha",type="contrast")
-
-mod2<- (lmer(n2o_a~sqrt_Nfer_kgha+mean_fapar+(1|site_a),data=grassland2_field))
-summary(mod2)
-
-# 
-collection2 <- unique(subset(grassland2_field,is.na(n2o_ugm2h)==F)[,c("lon","lat","z","start_yr","end_yr")])
-dim(collection2)
+n2a <- visreg(mod2,"mean_fapar_modis",type="contrast")
 
 
 #finally cropland
@@ -487,15 +486,32 @@ dim(cropland2_liao)
 #obs. moisture is completely non-significant, so removed here to produce more sites
 #remove soil cn and ppfd_a here
 test3 <- (na.omit(cropland2_liao[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","ndep_a",
-                                   "vpd_a","Tg_a",
-                                   "PPFD_total_a",
-                                   "max_fapar","mean_fapar","max_mean_fapar")]))
+                                    "vpd_a","Tg_a",
+                                    "PPFD_total_a",
+                                    "max_fapar_modis","mean_fapar_modis","max_mean_fapar_modis")]))
 
 dim(test3)
 stepwise(test3,"n2o_a")[[1]]
 stepwise(test3,"n2o_a")[[2]]
-mod3<- ((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+ndep_a+vpd_a+
-                max_fapar+mean_fapar+(1|site_a),data=test3)))
+mod3<- ((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+ndep_a+vpd_a+(1|site_a),data=test3)))
+visreg(mod3,"sqrt_Nfer_kgha",type="contrast")
+visreg(mod3,"orgc_a",type="contrast")
+visreg(mod3,"PPFD_total_a",type="contrast")
+visreg(mod3,"ndep_a",type="contrast")
+visreg(mod3,"vpd_a",type="contrast")
+r.squaredGLMM(mod3)
+summary(mod3)
+
+#fapar-3g
+test3 <- (na.omit(cropland2_liao[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","ndep_a",
+                                   "vpd_a","Tg_a",
+                                   "PPFD_total_a",
+                                   "max_fapar","mean_fapar")]))
+
+dim(test3)
+stepwise(test3,"n2o_a")[[1]]
+stepwise(test3,"n2o_a")[[2]]
+mod3<- ((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+ndep_a+vpd_a+max_fapar+mean_fapar+(1|site_a),data=test3)))
 
 r.squaredGLMM(mod3)
 summary(mod3)
@@ -505,33 +521,23 @@ visreg(mod3,"orgc_a",type="contrast")
 visreg(mod3,"PPFD_total_a",type="contrast")
 visreg(mod3,"ndep_a",type="contrast")
 visreg(mod3,"vpd_a",type="contrast")
-
 visreg(mod3,"max_fapar",type="contrast")
 visreg(mod3,"mean_fapar",type="contrast")
 
 
 summary((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+ndep_a+vpd_a+
                 max_fapar+mean_fapar+(1|site_a),data=test3)))
+r.squaredGLMM((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+ndep_a+vpd_a+
+                max_fapar+mean_fapar+(1|site_a),data=test3)))
 
-summary((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+ndep_a+vpd_a+
-                max_fapar+(1|site_a),data=test3)))
-
-summary((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+ndep_a+vpd_a+
-                max_fapar+CNrt_a+(1|site_a),data=test3)))
-
-#have a look at 
-
-collection3 <- unique(subset(cropland2_liao,is.na(n2o_ugm2h)==F)[,c("lon","lat","z","start_yr","end_yr")])
-dim(collection3)
-
-
-all_collection <- as.data.frame(rbind(collection1,collection2,collection3))
-all_collection$sitename <- paste0("site",c(1:nrow(all_collection)))
-#csvfile <- paste("~/data/n2o_fapar/fapar_siteinfo.csv")
-#write_csv(all_collection, path = csvfile)
 
 #check pft
 df1 <- unique(subset(all_n2o_df_removal,file!="cui et al. nature food" & method=="field" &is.na(n2o_ugm2h)==F)[,c("lon","lat","z","start_yr","end_yr","pft")])
 dim(df1)
 as.data.frame(df1 %>% group_by(pft)  %>% summarise(number = n()))
 
+#see what's going on 
+analyse_modobs2(all_n2o_df,"max_fapar","max_fapar_modis", type = "points",relative=TRUE)
+analyse_modobs2(all_n2o_df,"mean_fapar","mean_fapar_modis", type = "points",relative=TRUE)
+analyse_modobs2(all_n2o_df,"max_mean_fapar","max_mean_fapar_modis", type = "points",relative=TRUE)
+  
