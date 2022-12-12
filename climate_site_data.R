@@ -1,5 +1,7 @@
 #prepare sites
 rm(list=ls())
+devtools::load_all("/Users/yunpeng/yunkepeng/latest_packages/rbeni/") 
+
 #input site info
 gwr_sites <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_measurementyear.csv")
 
@@ -125,12 +127,14 @@ radi_output <- gwr_methods(gwr_sites,monthly_radi)
 
 # now, calculate Tg, vpd and PPFD 
 dim(radi_output)
-tmx_site <- tmx_output[,8:247]
-tmn_site <- tmn_output[,8:247]
-vap_site <- vap_output[,8:247]
-pre_site <- pre_output[,8:247]
-radi_site <- radi_output[,8:247]
-alpha_site <- alpha_output[,8:247]
+no_total_months <- ncol(tmx_output) 
+
+tmx_site <- tmx_output[,8:no_total_months]
+tmn_site <- tmn_output[,8:no_total_months]
+vap_site <- vap_output[,8:no_total_months]
+pre_site <- pre_output[,8:no_total_months]
+radi_site <- radi_output[,8:no_total_months]
+alpha_site <- alpha_output[,8:no_total_months]
 
 #1. Tg
 #solar declination from Jan to Dec
@@ -149,11 +153,11 @@ s12 <- (-21.6 + -23.1)/2
 
 s <- c(s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12)
 lat <- gwr_sites$lat
-xx <- data.frame(matrix(nrow=nrow(gwr_sites), ncol=240))
-output_Tg <- data.frame(matrix(nrow=nrow(gwr_sites), ncol=240))
+xx <- data.frame(matrix(nrow=nrow(gwr_sites), ncol=no_total_months-7))
+output_Tg <- data.frame(matrix(nrow=nrow(gwr_sites), ncol=no_total_months-7))
 #xx = acos(h), h = hour angle of the sun
 for (a in 1:12){ 
-  month_no <- seq(from = 1, to = 240, by = 12)+a-1
+  month_no <- seq(from = 1, to = no_total_months-7, by = 12)+a-1
   xx[1:nrow(gwr_sites),month_no]<- -tan(pi*lat/180)*tan(s[a]*pi/180)
 }
 
@@ -186,10 +190,11 @@ gwr_sites$alpha_sites <- rowMeans(alpha_Tg_site,na.rm=TRUE)
 gwr_sites$PPFD_sites <- rowMeans(PPFD_site,na.rm=TRUE)
 gwr_sites$Tg_sites <- rowMeans(Tg_site,na.rm=TRUE)
 gwr_sites$vpd_sites <- rowMeans(vpd_site,na.rm=TRUE)
+gwr_sites$PPFD_total_sites <- rowSums(PPFD_site,na.rm=TRUE)/(gwr_sites$year_end-gwr_sites$year_start+1)
 
 summary(gwr_sites)
 
-gwr_sites2 <- gwr_sites[,c("lon","lat","z","year_start","year_end","alpha_sites","PPFD_sites","Tg_sites","vpd_sites")]
+gwr_sites2 <- gwr_sites[,c("lon","lat","z","year_start","year_end","alpha_sites","PPFD_sites","Tg_sites","vpd_sites","PPFD_total_sites")]
 
-csvfile <- paste("/Users/yunpeng/data/n2o_Yunke/forcing/siteinfo_measurementyear_gwrclimate.csv")
+csvfile <- paste("~/data/n2o_Yunke/forcing/siteinfo_measurementyear_gwrclimate.csv")
 write_csv(gwr_sites2, path = csvfile)
