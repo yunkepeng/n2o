@@ -190,7 +190,9 @@ gwr_sites$alpha_sites <- rowMeans(alpha_Tg_site,na.rm=TRUE)
 gwr_sites$PPFD_sites <- rowMeans(PPFD_site,na.rm=TRUE)
 gwr_sites$Tg_sites <- rowMeans(Tg_site,na.rm=TRUE)
 gwr_sites$vpd_sites <- rowMeans(vpd_site,na.rm=TRUE)
-gwr_sites$PPFD_total_sites <- rowSums(PPFD_site,na.rm=TRUE)/(gwr_sites$year_end-gwr_sites$year_start+1)
+
+#convert from umol/m2/s to mol/m2/month and then further sums (31556952 is from second to year, 12 is from year to month --> so it is from second to month so that can be further rowsums then; 1000000 is from umol to mol)
+gwr_sites$PPFD_total_sites <- rowSums(PPFD_site*31556952/12/1000000,na.rm=TRUE)/(gwr_sites$year_end-gwr_sites$year_start+1)
 
 summary(gwr_sites)
 
