@@ -17,7 +17,7 @@ nrow(fapar_final) #840 (bi-weekly data, from 19820101 to 20161014: 35 years *12 
 #test first one 
 raster(fapar_final$fapar_df_new[1]) # resolution 0.08333333 (1/12)
 
-empty_fapar <- data.frame(matrix(NA)) 
+empty_fapar_nfocal0 <- data.frame(matrix(NA)) 
 empty_fapar_nfocal1 <- data.frame(matrix(NA)) 
 empty_fapar_nfocal2 <- data.frame(matrix(NA)) 
 
@@ -82,25 +82,38 @@ for (i in 1:(nrow(fapar_final))) {
   d25 <- (raster::extract(raster_fapar, sp25, sp = TRUE) %>% as_tibble() %>%right_join(s25, by = c("lon", "lat")))[,1]
   
   rm(raster_fapar)
-  empty_fapar[1:nrow(sitemean),i]<- d9
+  empty_fapar_nfocal0[1:nrow(sitemean),i]<- d9
   empty_fapar_nfocal1[1:nrow(sitemean),i]<- rowMeans(as.data.frame(cbind(d1,d2,d3,d4,d5,d6,d7,d8,d9)),na.rm=T)
   empty_fapar_nfocal2[1:nrow(sitemean),i]<- rowMeans(as.data.frame(cbind(d1,d2,d3,d4,d5,d6,d7,d8,d9,d10,d11,d12,
                                                                          d13,d14,d15,d16,d17,d18,d19,d20,d21,d22,d23,d24,d25)),na.rm=T)
   
 } 
 
-#convert bi-weekly to monthly data (average each 2 columns)
-empty_fapar2 <- data.frame(matrix(NA)) 
+#write.csv --> sitemean, nfocal0, 1, 2
+csvfile <- paste("~/data/n2o_Yunke/forcing/fapar_nfocal0.csv")
+write_csv(empty_fapar_nfocal0, path = csvfile)
+csvfile <- paste("~/data/n2o_Yunke/forcing/fapar_nfocal1.csv")
+write_csv(empty_fapar_nfocal1, path = csvfile)
+csvfile <- paste("~/data/n2o_Yunke/forcing/fapar_nfocal2.csv")
+write_csv(empty_fapar_nfocal2, path = csvfile)
+csvfile <- paste("~/data/n2o_Yunke/forcing/fapar_sitemean.csv")
+write_csv(sitemean, path = csvfile)
 
-for (i in 1:(ncol(empty_fapar)/2)) {
-  empty_fapar2[1:nrow(sitemean),i]<- rowMeans(empty_fapar[,c((2*i-1):(2*i))])
+#convert bi-weekly to monthly data (average each 2 columns)
+empty_fapar2_nfocal0 <- data.frame(matrix(NA)) 
+empty_fapar2_nfocal1 <- data.frame(matrix(NA)) 
+empty_fapar2_nfocal2 <- data.frame(matrix(NA)) 
+
+for (i in 1:(ncol(empty_fapar_nfocal0)/2)) {
+  empty_fapar2_nfocal0[1:nrow(sitemean),i]<- rowMeans(empty_fapar_nfocal0[,c((2*i-1):(2*i))])
+  empty_fapar2_nfocal1[1:nrow(sitemean),i]<- rowMeans(empty_fapar_nfocal1[,c((2*i-1):(2*i))])
+  empty_fapar2_nfocal2[1:nrow(sitemean),i]<- rowMeans(empty_fapar_nfocal2[,c((2*i-1):(2*i))])
 } 
 
-dim(empty_fapar2)
-
 #this is monthly fapar (from 1982 to 2016) #lon + lat 420 months
-fapar_sites <- as.data.frame(cbind(sitemean,empty_fapar2))
-dim(fapar_sites)
+fapar_sites_nfocal0 <- as.data.frame(cbind(sitemean,empty_fapar2_nfocal0))
+fapar_sites_nfocal1 <- as.data.frame(cbind(sitemean,empty_fapar2_nfocal1))
+fapar_sites_nfocal2 <- as.data.frame(cbind(sitemean,empty_fapar2_nfocal2))
 
 # convert years <1982 to 1982-1991 average 
 siteinfo <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_measurementyear.csv")
@@ -111,20 +124,49 @@ siteinfo$begin_yr[ siteinfo$year_start<1982] <- 1982
 siteinfo$end_yr[ siteinfo$year_start<1982] <- 1991
 summary(siteinfo)
 
+#create three n_focal conditions
+siteinfo_nfocal0 <- siteinfo
+siteinfo_nfocal1 <- siteinfo
+siteinfo_nfocal2 <- siteinfo
+
 #now, starting select years of siteinfo
-for (i in 1:(nrow(siteinfo))) {
+for (i in 1:(nrow(siteinfo_nfocal0))) {
   print(i)
-  fapar_selected <- subset(fapar_sites,lon==siteinfo$lon[i]&lat==siteinfo$lat[i])
+  fapar_selected <- subset(fapar_sites_nfocal0,lon==siteinfo_nfocal0$lon[i]&lat==siteinfo_nfocal0$lat[i])
   fapar_selected <- fapar_selected[,c(3:422)] #remove lon and lat, and only keeps fapar data
   fapar_selected <- t(fapar_selected)
-  start_years <- siteinfo$begin_yr[i]
-  end_years <- siteinfo$end_yr[i]
+  start_years <- siteinfo_nfocal0$begin_yr[i]
+  end_years <- siteinfo_nfocal0$end_yr[i]
   
   fapar_data <- (fapar_selected[c(((start_years-1981)*12-11):((end_years-1981)*12))])
-  siteinfo[i,(1+8):(length(fapar_data)+8)] <- fapar_data
+  siteinfo_nfocal0[i,(1+8):(length(fapar_data)+8)] <- fapar_data
 } 
 
-dim(siteinfo) #this should fapar data at measurement year (from column 9 to 296)
+for (i in 1:(nrow(siteinfo_nfocal1))) {
+  print(i)
+  fapar_selected <- subset(fapar_sites_nfocal1,lon==siteinfo_nfocal1$lon[i]&lat==siteinfo_nfocal1$lat[i])
+  fapar_selected <- fapar_selected[,c(3:422)] #remove lon and lat, and only keeps fapar data
+  fapar_selected <- t(fapar_selected)
+  start_years <- siteinfo_nfocal1$begin_yr[i]
+  end_years <- siteinfo_nfocal1$end_yr[i]
+  
+  fapar_data <- (fapar_selected[c(((start_years-1981)*12-11):((end_years-1981)*12))])
+  siteinfo_nfocal1[i,(1+8):(length(fapar_data)+8)] <- fapar_data
+} 
+
+for (i in 1:(nrow(siteinfo_nfocal2))) {
+  print(i)
+  fapar_selected <- subset(fapar_sites_nfocal2,lon==siteinfo_nfocal2$lon[i]&lat==siteinfo_nfocal2$lat[i])
+  fapar_selected <- fapar_selected[,c(3:422)] #remove lon and lat, and only keeps fapar data
+  fapar_selected <- t(fapar_selected)
+  start_years <- siteinfo_nfocal2$begin_yr[i]
+  end_years <- siteinfo_nfocal2$end_yr[i]
+  
+  fapar_data <- (fapar_selected[c(((start_years-1981)*12-11):((end_years-1981)*12))])
+  siteinfo_nfocal2[i,(1+8):(length(fapar_data)+8)] <- fapar_data
+} 
+
+dim(siteinfo_nfocal0) #this should fapar data at measurement year (from column 9 to 296)
 
 #now, start with Tg
 gwr_sites <- siteinfo[,c("lon","lat","elv","year_start","year_end","begin_yr","end_yr")]
@@ -238,23 +280,40 @@ Tg_site[Tg_site < 0] <- NA
 #1014 are site numbers, 144 are total months
 dim(Tg_site)
 
-fAPAR_site <- siteinfo[,c(9:ncol(siteinfo))]
-dim(fAPAR_site)
+fAPAR_site_nfocal0 <- siteinfo_nfocal0[,c(9:ncol(siteinfo_nfocal0))]
+fAPAR_site_nfocal1 <- siteinfo_nfocal1[,c(9:ncol(siteinfo_nfocal1))]
+fAPAR_site_nfocal2 <- siteinfo_nfocal2[,c(9:ncol(siteinfo_nfocal2))]
 
-fAPAR_growing <- fAPAR_site+Tg_site-Tg_site # + and then - to remove those non-growing months (shown as NA in Tg_sites)
+fAPAR_growing_nfocal0 <- fAPAR_site_nfocal0+Tg_site-Tg_site # + and then - to remove those non-growing months (shown as NA in Tg_sites)
+fAPAR_growing_nfocal1 <- fAPAR_site_nfocal1+Tg_site-Tg_site # + and then - to remove those non-growing months (shown as NA in Tg_sites)
+fAPAR_growing_nfocal2 <- fAPAR_site_nfocal2+Tg_site-Tg_site # + and then - to remove those non-growing months (shown as NA in Tg_sites)
 
 gwr_sites_final <- gwr_sites[,c(1:7)]
 
-gwr_sites_final$min_fapar <- apply(fAPAR_site, 1, FUN = min, na.rm = TRUE)
-gwr_sites_final$max_fapar <- apply(fAPAR_site, 1, FUN = max, na.rm = TRUE)
-gwr_sites_final$mean_fapar <- apply(fAPAR_site, 1, FUN = mean, na.rm = TRUE)
+###
+gwr_sites_final$min_fapar_nfocal0 <- apply(fAPAR_site_nfocal0, 1, FUN = min, na.rm = TRUE)
+gwr_sites_final$min_fapar_nfocal1 <- apply(fAPAR_site_nfocal1, 1, FUN = min, na.rm = TRUE)
+gwr_sites_final$min_fapar_nfocal2 <- apply(fAPAR_site_nfocal2, 1, FUN = min, na.rm = TRUE)
 
-gwr_sites_final$min_fapar_growing <- apply(fAPAR_growing, 1, FUN = min, na.rm = TRUE)
-gwr_sites_final$max_fapar_growing <- apply(fAPAR_growing, 1, FUN = max, na.rm = TRUE)
-gwr_sites_final$mean_fapar_growing <- apply(fAPAR_growing, 1, FUN = mean, na.rm = TRUE)
+gwr_sites_final$max_fapar_nfocal0 <- apply(fAPAR_site_nfocal0, 1, FUN = max, na.rm = TRUE)
+gwr_sites_final$max_fapar_nfocal1 <- apply(fAPAR_site_nfocal1, 1, FUN = max, na.rm = TRUE)
+gwr_sites_final$max_fapar_nfocal2 <- apply(fAPAR_site_nfocal2, 1, FUN = max, na.rm = TRUE)
 
-gwr_sites_final[sapply(gwr_sites_final, is.nan)] <- NA
-gwr_sites_final[sapply(gwr_sites_final, is.infinite)] <- NA
+gwr_sites_final$mean_fapar_nfocal0 <- apply(fAPAR_site_nfocal0, 1, FUN = mean, na.rm = TRUE)
+gwr_sites_final$mean_fapar_nfocal1 <- apply(fAPAR_site_nfocal1, 1, FUN = mean, na.rm = TRUE)
+gwr_sites_final$mean_fapar_nfocal2 <- apply(fAPAR_site_nfocal2, 1, FUN = mean, na.rm = TRUE)
+
+gwr_sites_final$min_fapar_growing_nfocal0 <- apply(fAPAR_growing_nfocal0, 1, FUN = min, na.rm = TRUE)
+gwr_sites_final$min_fapar_growing_nfocal1 <- apply(fAPAR_growing_nfocal1, 1, FUN = min, na.rm = TRUE)
+gwr_sites_final$min_fapar_growing_nfocal2 <- apply(fAPAR_growing_nfocal2, 1, FUN = min, na.rm = TRUE)
+
+gwr_sites_final$max_fapar_growing_nfocal0 <- apply(fAPAR_growing_nfocal0, 1, FUN = max, na.rm = TRUE)
+gwr_sites_final$max_fapar_growing_nfocal1 <- apply(fAPAR_growing_nfocal1, 1, FUN = max, na.rm = TRUE)
+gwr_sites_final$max_fapar_growing_nfocal2 <- apply(fAPAR_growing_nfocal2, 1, FUN = max, na.rm = TRUE)
+
+gwr_sites_final$mean_fapar_growing_nfocal0 <- apply(fAPAR_growing_nfocal0, 1, FUN = mean, na.rm = TRUE)
+gwr_sites_final$mean_fapar_growing_nfocal1 <- apply(fAPAR_growing_nfocal1, 1, FUN = mean, na.rm = TRUE)
+gwr_sites_final$mean_fapar_growing_nfocal2 <- apply(fAPAR_growing_nfocal2, 1, FUN = mean, na.rm = TRUE)
 
 gwr_sites_final$year_start <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_measurementyear.csv")$year_start
 gwr_sites_final$year_end <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_measurementyear.csv")$year_end
@@ -263,110 +322,46 @@ gwr_sites_final2 <- dplyr::select(gwr_sites_final, -c('Begin_year', 'End_year'))
 
 summary(gwr_sites_final2)
 
-#also, finally including fapar data of all years 
+#also, finally including fapar data of all years, including n_focal0, 1, 2 separately
 for (i in 1:(nrow(siteinfo))) {
   print(i)
-  fapar_selected <- subset(fapar_sites,lon==siteinfo$lon[i]&lat==siteinfo$lat[i])
+  fapar_selected <- subset(fapar_sites_nfocal0,lon==siteinfo$lon[i]&lat==siteinfo$lat[i])
   fapar_selected <- fapar_selected[,c(3:422)] #remove lon and lat, and only keeps fapar data
   fapar_selected <- t(fapar_selected)
   siteinfo[i,(1+8):(420+8)] <- fapar_selected
 } 
 fAPAR_site2 <- siteinfo[,c(9:428)]
-gwr_sites_final2$min_fapar_35yrs <- apply(fAPAR_site2, 1, FUN = min, na.rm = TRUE)
-gwr_sites_final2$max_fapar_35yrs <- apply(fAPAR_site2, 1, FUN = max, na.rm = TRUE)
-gwr_sites_final2$mean_fapar_35yrs <- apply(fAPAR_site2, 1, FUN = mean, na.rm = TRUE)
+gwr_sites_final2$min_fapar_35yrs_nfocal0 <- apply(fAPAR_site2, 1, FUN = min, na.rm = TRUE)
+gwr_sites_final2$max_fapar_35yrs_nfocal0 <- apply(fAPAR_site2, 1, FUN = max, na.rm = TRUE)
+gwr_sites_final2$mean_fapar_35yrs_nfocal0 <- apply(fAPAR_site2, 1, FUN = mean, na.rm = TRUE)
+
+for (i in 1:(nrow(siteinfo))) {
+  print(i)
+  fapar_selected <- subset(fapar_sites_nfocal1,lon==siteinfo$lon[i]&lat==siteinfo$lat[i])
+  fapar_selected <- fapar_selected[,c(3:422)] #remove lon and lat, and only keeps fapar data
+  fapar_selected <- t(fapar_selected)
+  siteinfo[i,(1+8):(420+8)] <- fapar_selected
+} 
+fAPAR_site2 <- siteinfo[,c(9:428)]
+gwr_sites_final2$min_fapar_35yrs_nfocal1 <- apply(fAPAR_site2, 1, FUN = min, na.rm = TRUE)
+gwr_sites_final2$max_fapar_35yrs_nfocal1 <- apply(fAPAR_site2, 1, FUN = max, na.rm = TRUE)
+gwr_sites_final2$mean_fapar_35yrs_nfocal1 <- apply(fAPAR_site2, 1, FUN = mean, na.rm = TRUE)
+
+for (i in 1:(nrow(siteinfo))) {
+  print(i)
+  fapar_selected <- subset(fapar_sites_nfocal2,lon==siteinfo$lon[i]&lat==siteinfo$lat[i])
+  fapar_selected <- fapar_selected[,c(3:422)] #remove lon and lat, and only keeps fapar data
+  fapar_selected <- t(fapar_selected)
+  siteinfo[i,(1+8):(420+8)] <- fapar_selected
+} 
+fAPAR_site2 <- siteinfo[,c(9:428)]
+gwr_sites_final2$min_fapar_35yrs_nfocal2 <- apply(fAPAR_site2, 1, FUN = min, na.rm = TRUE)
+gwr_sites_final2$max_fapar_35yrs_nfocal2 <- apply(fAPAR_site2, 1, FUN = max, na.rm = TRUE)
+gwr_sites_final2$mean_fapar_35yrs_nfocal2 <- apply(fAPAR_site2, 1, FUN = mean, na.rm = TRUE)
+
 gwr_sites_final2[sapply(gwr_sites_final2, is.nan)] <- NA
 gwr_sites_final2[sapply(gwr_sites_final2, is.infinite)] <- NA
 
 csvfile <- paste("~/data/n2o_Yunke/forcing/siteinfo_measurementyear_fapar3g_zhu.csv")
 write_csv(gwr_sites_final2, path = csvfile)
 
-
-
-
-
-#saved here
-library(ncdf4)
-library(dplyr)
-library(raster)
-library(readr)
-library(spgwr)
-devtools::load_all("/Users/yunpeng/yunkepeng/latest_packages/rbeni/") 
-
-siteinfo <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_measurementyear.csv")
-sitemean <- unique(siteinfo[,c("lon","lat")])
-sp_sites <- SpatialPoints(sitemean) # only select lon and lat
-
-fapar_df_new <- list.files("/Users/yunpeng/data/fapar3g_zhu/data/",full.names = T)
-year_info <- substr(sub('.*AVHRRBUVI04.', '', fapar_df_new),1,nchar(sub('.*AVHRRBUVI04.', '', fapar_df_new))-8) 
-year_fapar <- as.data.frame(cbind(fapar_df_new,year_info))
-fapar_final <- arrange(year_fapar,year_info)
-nrow(fapar_final) #840 (bi-weekly data, from 19820101 to 20161014: 35 years *12 months *2 )
-
-#test first one 
-raster(fapar_final$fapar_df_new[1]) # resolution 0.08333333 (1/12)
-
-empty_fapar <- data.frame(matrix(NA)) 
-#find nearest grid
-i=1
-
-raster_fapar <- raster(fapar_final$fapar_df_new[i])
-
-fapar_monthly <- (raster::extract(raster_fapar, sp_sites, sp = TRUE) %>% as_tibble() %>%
-                    right_join(sitemean, by = c("lon", "lat")))[,1]
-fapar_data <- as.data.frame(cbind(sitemean,fapar_monthly))
-names(fapar_data) <- c("lon","lat","fapar")
-#find NA points
-fapar_na <- subset(fapar_data,is.na(fapar)==T)
-fapar_na
-#extract by finding finding closest grids lon or lat + 1/12
-s1 <- as.data.frame(cbind(fapar_na$lon+ (1/12),fapar_na$lat));names(s1) <- c("lon","lat");sp1 <- SpatialPoints(s1)
-s2 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat));names(s2) <- c("lon","lat");sp2 <- SpatialPoints(s2)
-s3 <- as.data.frame(cbind(fapar_na$lon,fapar_na$lat+ (1/12)));names(s3) <- c("lon","lat");sp3 <- SpatialPoints(s3)
-s4 <- as.data.frame(cbind(fapar_na$lon,fapar_na$lat- (1/12)));names(s4) <- c("lon","lat");sp4 <- SpatialPoints(s4)
-s5 <- as.data.frame(cbind(fapar_na$lon+ (1/12),fapar_na$lat+ (1/12)));names(s5) <- c("lon","lat");sp5 <- SpatialPoints(s5)
-s6 <- as.data.frame(cbind(fapar_na$lon+ (1/12),fapar_na$lat- (1/12)));names(s6) <- c("lon","lat");sp6 <- SpatialPoints(s6)
-s7 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat+ (1/12)));names(s7) <- c("lon","lat");sp7 <- SpatialPoints(s7)
-s8 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-
-d1 <- (raster::extract(raster_fapar, sp1, sp = TRUE) %>% as_tibble() %>%right_join(s1, by = c("lon", "lat")))[,1]
-d2 <- (raster::extract(raster_fapar, sp2, sp = TRUE) %>% as_tibble() %>%right_join(s2, by = c("lon", "lat")))[,1]
-d3 <- (raster::extract(raster_fapar, sp3, sp = TRUE) %>% as_tibble() %>%right_join(s3, by = c("lon", "lat")))[,1]
-d4 <- (raster::extract(raster_fapar, sp4, sp = TRUE) %>% as_tibble() %>%right_join(s4, by = c("lon", "lat")))[,1]
-d5 <- (raster::extract(raster_fapar, sp5, sp = TRUE) %>% as_tibble() %>%right_join(s5, by = c("lon", "lat")))[,1]
-d6 <- (raster::extract(raster_fapar, sp6, sp = TRUE) %>% as_tibble() %>%right_join(s6, by = c("lon", "lat")))[,1]
-d7 <- (raster::extract(raster_fapar, sp7, sp = TRUE) %>% as_tibble() %>%right_join(s7, by = c("lon", "lat")))[,1]
-d8 <- (raster::extract(raster_fapar, sp8, sp = TRUE) %>% as_tibble() %>%right_join(s8, by = c("lon", "lat")))[,1]
-
-filled_data <- as.data.frame(cbind(fapar_na,d1,d2,d3,d4,d5,d6,d7,d8))
-summary(filled_data)
-filled_data$fapar <- rowMeans(filled_data[,c(4:11)],na.rm=T)
-summary(filled_data) #only 59 left
-filled_data$n_focal <- 1
-
-#n_focal = 2
-s1 <- as.data.frame(cbind(fapar_na$lon+ (1/12),fapar_na$lat));names(s1) <- c("lon","lat");sp1 <- SpatialPoints(s1)
-s2 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat));names(s2) <- c("lon","lat");sp2 <- SpatialPoints(s2)
-s3 <- as.data.frame(cbind(fapar_na$lon,fapar_na$lat+ (1/12)));names(s3) <- c("lon","lat");sp3 <- SpatialPoints(s3)
-s4 <- as.data.frame(cbind(fapar_na$lon,fapar_na$lat- (1/12)));names(s4) <- c("lon","lat");sp4 <- SpatialPoints(s4)
-s5 <- as.data.frame(cbind(fapar_na$lon+ (1/12),fapar_na$lat+ (1/12)));names(s5) <- c("lon","lat");sp5 <- SpatialPoints(s5)
-s6 <- as.data.frame(cbind(fapar_na$lon+ (1/12),fapar_na$lat- (1/12)));names(s6) <- c("lon","lat");sp6 <- SpatialPoints(s6)
-s7 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat+ (1/12)));names(s7) <- c("lon","lat");sp7 <- SpatialPoints(s7)
-s8 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-s9 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-#start from top left...until bottom right...
-s10 <- as.data.frame(cbind(fapar_na$lon- (2/12),fapar_na$lat+ (2/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-s11 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat+ (2/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-s12 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-s13 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-s14 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-s15 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-s16 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-s17 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-s18 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-s19 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-s20 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-s21 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-s22 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-s23 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
-s24 <- as.data.frame(cbind(fapar_na$lon- (1/12),fapar_na$lat- (1/12)));names(s8) <- c("lon","lat");sp8 <- SpatialPoints(s8)
