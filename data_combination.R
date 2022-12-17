@@ -37,10 +37,10 @@ library(car)
 #1a: field-based n2o
 liao_field <- read.csv("~/data/n2o_liao/org/Global_change_biology_GCB-22-1572_primary_field_data.csv")
 liao_field2<- liao_field[,c("Ref","Study.area","Year","Latitude","Longitude","N.addition..kg.ha.1.",
-                           "Altitude..m.","N2O.fluxes..μg.N.m.2.h.1.","Total.N..g.kg.1.","NO3....mg.kg.1.",
-                           "NH4...mg.kg.1.","pH","SOC..g.kg.1.","Ecosystem.types","Soil.moisture....",
-                           "AOA..copy.numbers.g.1.dry.soil.","AOB..copy.numbers.g.1.dry.soil.","nirS...copy.numbers.g.1.dry.soil.",
-                           "nirK...copy.numbers.g.1.dry.soil.","nosZ...copy.numbers.g.1.dry.soil.")]
+                            "Altitude..m.","N2O.fluxes..μg.N.m.2.h.1.","Total.N..g.kg.1.","NO3....mg.kg.1.",
+                            "NH4...mg.kg.1.","pH","SOC..g.kg.1.","Ecosystem.types","Soil.moisture....",
+                            "AOA..copy.numbers.g.1.dry.soil.","AOB..copy.numbers.g.1.dry.soil.","nirS...copy.numbers.g.1.dry.soil.",
+                            "nirK...copy.numbers.g.1.dry.soil.","nosZ...copy.numbers.g.1.dry.soil.")]
 names(liao_field2) <- c("ref","site","year","lat","lon","Nfer_kgha",
                         "z","n2o_ugm2h","totaln_gkg","no3_mgkg","nh4_mgkg","pH","soc_gkg","pft","obs_moisture",
                         "AOA","AOB","nirS","nirK","nosZ")
@@ -69,12 +69,12 @@ summary(liao_field2$end_yr -liao_field2$start_yr)
 liao_pot <- read.csv("~/data/n2o_liao/org/Global_change_biology_GCB-22-1572_primary_pot_data.csv")
 #by checking original paper (e.g. Ref_ID = 42 or 51), mg N kg-1 is actually N addition. NO2 fluxes (μg N m-2 h-1) is actually N2O fluxes
 liao_pot2<- liao_pot[,c("Ref","Study.area","Year","Latitude","Longitude","mg.N.kg.1",
-                            "Altitude..m.","NO2.fluxes..μg.N.m.2.h.1.","Total.N..g.kg.1.","NO3....mg.kg.1.",
-                            "NH4...mg.kg.1.","pH","SOC..g.kg.1.","Ecosystem.types","Soil.moisture....",
+                        "Altitude..m.","NO2.fluxes..μg.N.m.2.h.1.","Total.N..g.kg.1.","NO3....mg.kg.1.",
+                        "NH4...mg.kg.1.","pH","SOC..g.kg.1.","Ecosystem.types","Soil.moisture....",
                         "AOA..copy.numbers.g.1.dry.soil.","AOB..copy.numbers.g.1.dry.soil.","nirS...copy.numbers.g.1.dry.soil.",
                         "nirK...copy.numbers.g.1.dry.soil.","nosZ...copy.numbers.g.1.dry.soil.")]
 names(liao_pot2) <- c("ref","site","year","lat","lon","Nfer_mgkg",
-                        "z","n2o_ugm2h","totaln_gkg","no3_mgkg","nh4_mgkg","pH","soc_gkg","pft","obs_moisture",
+                      "z","n2o_ugm2h","totaln_gkg","no3_mgkg","nh4_mgkg","pH","soc_gkg","pft","obs_moisture",
                       "AOA","AOB","nirS","nirK","nosZ")
 liao_pot2[liao_pot2 == -9999] <- NA
 
@@ -116,7 +116,7 @@ cui2 <- cui[,c("Reference","Latitude","Longitude","Start_year","End_year","Ferti
                "Crop.type","Nrate","n2o","Tillage","Irrigation","Site")]
 
 names(cui2) <- c("ref","lat","lon","start_yr","end_yr","fertilizers",
-                "crop","Nfer_kgha","n2o_ugm2h","tillage","irrigation","site")
+                 "crop","Nfer_kgha","n2o_ugm2h","tillage","irrigation","site")
 cui2$method <- "field"
 cui2$file <- "cui et al. nature food"
 cui2$pft <- "cropland"
@@ -130,11 +130,11 @@ cui_fallow$n2o <- cui_fallow$E/cui_fallow$Duration_new #E was at kg N2O-N ha-1, 
 cui_fallow$n2o <- cui_fallow$n2o*1000000000/10000/24 #convert from kg/ha/day to ug/m2/h
 summary(cui_fallow$n2o)
 cui2_fallow <- cui_fallow[,c("Reference","Latitude","Longitude","Start_year","End_year","Fertilizers",
-               "Crop.type","Nrate","n2o","Tillage","Irrigation","Site")]
+                             "Crop.type","Nrate","n2o","Tillage","Irrigation","Site")]
 cui2_fallow$Site <- paste(cui2_fallow$Site,"_fallow",sep="")
 
 names(cui2_fallow) <- c("ref","lat","lon","start_yr","end_yr","fertilizers",
-                 "crop","Nfer_kgha","n2o_ugm2h","tillage","irrigation","site")
+                        "crop","Nfer_kgha","n2o_ugm2h","tillage","irrigation","site")
 
 cui2_fallow$method <- "field_fallow"
 cui2_fallow$file <- "cui et al. nature food"
@@ -304,77 +304,40 @@ all_n2o_df <- merge(all_n2o_df,moisture,by=c("lon","lat","z","start_yr","end_yr"
 summary(all_n2o_df)
 #QQQ: check NA values in Tg_sites and moisture_splash -> they might record wrong coordinates in literatures!
 
-#add fapar3g (monthly max and mean)
-fapar3g_df <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_measurementyear_fapar3g.csv")
-names(fapar3g_df) 
-names(fapar3g_df) <- c("lon","lat","z","start_yr","end_yr",
-                       "min_fapar_3g","max_fapar_3g","mean_fapar_3g",
-                       "min_gfapar_3g","max_gfapar_3g","mean_gfapar_3g")
-#convert <=0 as 0, convert >=1 as 1
-fapar3g_df$min_fapar_3g[fapar3g_df$min_fapar_3g<=0] <- 0
-fapar3g_df$min_gfapar_3g[fapar3g_df$min_gfapar_3g<=0] <- 0
-fapar3g_df$min_fapar_3g[fapar3g_df$min_fapar_3g>=1] <- 1
-fapar3g_df$max_fapar_3g[fapar3g_df$max_fapar_3g>=1] <- 1
-fapar3g_df$mean_fapar_3g[fapar3g_df$mean_fapar_3g>=1] <- 1
-fapar3g_df$min_gfapar_3g[fapar3g_df$min_gfapar_3g>=1] <- 1
-fapar3g_df$max_gfapar_3g[fapar3g_df$max_gfapar_3g>=1] <- 1
-fapar3g_df$mean_gfapar_3g[fapar3g_df$mean_gfapar_3g>=1] <- 1
-summary(fapar3g_df)
-
-all_n2o_df <- merge(all_n2o_df,fapar3g_df,by=c("lon","lat","z","start_yr","end_yr"),all.x=TRUE)
-summary(all_n2o_df)
-
-names(all_n2o_df)
-
 #add fapar3g from 1/12 resolution (monthly max and mean)
 fapar3g_df_zhu <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_measurementyear_fapar3g_zhu.csv")
-names(fapar3g_df_zhu) 
-names(fapar3g_df_zhu) <- c("lon","lat","z","start_yr","end_yr",
-                       "min_fapar_3g_zhu","max_fapar_3g_zhu","mean_fapar_3g_zhu",
-                       "min_gfapar_3g_zhu","max_gfapar_3g_zhu","mean_gfapar_3g_zhu",
-                       "min_fapar_3g_zhu_35yrs","max_fapar_3g_zhu_35yrs","mean_fapar_3g_zhu_35yrs")
+
+fapar3g_df_zhu <- fapar3g_df_zhu %>% rename("start_yr" = "year_start",
+                                            "end_yr" = "year_end")
+
+fapar3g_df_zhu <- fapar3g_df_zhu %>% mutate(min_fapar = coalesce(min_fapar_nfocal0,min_fapar_nfocal1,min_fapar_nfocal2)) %>%
+  mutate(mean_fapar = coalesce(mean_fapar_nfocal0,mean_fapar_nfocal1,mean_fapar_nfocal2)) %>%
+  mutate(max_fapar = coalesce(max_fapar_nfocal0,max_fapar_nfocal1,max_fapar_nfocal2)) %>%
+  mutate(min_gfapar = coalesce(min_fapar_growing_nfocal0,min_fapar_growing_nfocal1,min_fapar_growing_nfocal2)) %>%
+  mutate(mean_gfapar = coalesce(mean_fapar_growing_nfocal0,mean_fapar_growing_nfocal1,mean_fapar_growing_nfocal2))%>%
+  mutate(max_gfapar = coalesce(max_fapar_growing_nfocal0,max_fapar_growing_nfocal1,max_fapar_growing_nfocal2))%>%
+  mutate(min_fapar_35yrs = coalesce(min_fapar_35yrs_nfocal0,min_fapar_35yrs_nfocal1,min_fapar_35yrs_nfocal2))%>%
+  mutate(mean_fapar_35yrs = coalesce(mean_fapar_35yrs_nfocal0,mean_fapar_35yrs_nfocal1,mean_fapar_35yrs_nfocal2))%>%
+  mutate(max_fapar_35yrs = coalesce(max_fapar_35yrs_nfocal0,max_fapar_35yrs_nfocal1,max_fapar_35yrs_nfocal2))
+
+fapar3g_df_zhu2 <- fapar3g_df_zhu[,c("lon","lat","z","start_yr","end_yr","min_fapar","mean_fapar","max_fapar",
+                                     "min_gfapar","mean_gfapar","max_gfapar","min_fapar_35yrs","mean_fapar_35yrs","max_fapar_35yrs")]
+
+summary(fapar3g_df_zhu2)
+fapar3g_df_zhu2[is.na(fapar3g_df_zhu2)] = 0
+summary(fapar3g_df_zhu2)
+
 #all from 0 to 1
-all_n2o_df <- merge(all_n2o_df,fapar3g_df_zhu,by=c("lon","lat","z","start_yr","end_yr"),all.x=TRUE)
+all_n2o_df <- merge(all_n2o_df,fapar3g_df_zhu2,
+                    by=c("lon","lat","z","start_yr","end_yr"),all.x=TRUE)
 summary(all_n2o_df)
-
-#show NA data
-newmap <- getMap(resolution = "low")
-plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
-points(all_n2o_df$lon[is.na(all_n2o_df$max_fapar_3g_zhu_35yrs)==T],
-       all_n2o_df$lat[is.na(all_n2o_df$max_fapar_3g_zhu_35yrs)==T], col="red", pch=16,cex=1)
-points(all_n2o_df$lon[is.na(all_n2o_df$min_fapar_3g)==T],
-       all_n2o_df$lat[is.na(all_n2o_df$min_fapar_3g)==T], col="blue", pch=16,cex=1)
-
-#plot(all_n2o_df$mean_fapar_3g_zhu~all_n2o_df$mean_fapar_3g)
-
-#add fapar_modis, monthly max and mean
-#add fapar3g (monthly max and mean)
-fapar_modis <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_measurementyear_fapar_modis.csv")
-names(fapar_modis) 
-names(fapar_modis) <- c("lon","lat","z","start_yr","end_yr",
-                       "min_fapar_modis","max_fapar_modis","mean_fapar_modis",
-                       "min_gfapar_modis","max_gfapar_modis","mean_gfapar_modis")
-#convert <=0 as 0, nothing is higher than 1
-fapar_modis$min_fapar_modis[fapar_modis$min_fapar_modis<=0] <- 0
-fapar_modis$max_fapar_modis[fapar_modis$max_fapar_modis<=0] <- 0
-fapar_modis$mean_fapar_modis[fapar_modis$mean_fapar_modis<=0] <- 0
-fapar_modis$min_gfapar_modis[fapar_modis$min_gfapar_modis<=0] <- 0
-summary(fapar_modis)
-
-all_n2o_df <- merge(all_n2o_df,fapar_modis,by=c("lon","lat","z","start_yr","end_yr"),all.x=TRUE)
-summary(all_n2o_df)
-
-#expected
-#first, look at data-driven model with nfer
-all_n2o_df$max_mean_fapar_3g <- all_n2o_df$max_fapar_3g-all_n2o_df$mean_fapar_3g
-all_n2o_df$max_min_fapar_3g <- all_n2o_df$max_fapar_3g-all_n2o_df$min_fapar_3g
-all_n2o_df$max_mean_gfapar_3g <- all_n2o_df$max_gfapar_3g-all_n2o_df$mean_gfapar_3g
-all_n2o_df$max_min_gfapar_3g <- all_n2o_df$max_gfapar_3g-all_n2o_df$min_gfapar_3g
-
-all_n2o_df$max_mean_fapar_modis <- all_n2o_df$max_fapar_modis-all_n2o_df$mean_fapar_modis
-all_n2o_df$max_min_fapar_modis <- all_n2o_df$max_fapar_modis-all_n2o_df$min_fapar_modis
-all_n2o_df$max_mean_gfapar_modis <- all_n2o_df$max_gfapar_modis-all_n2o_df$mean_gfapar_modis
-all_n2o_df$max_min_gfapar_modis <- all_n2o_df$max_gfapar_modis-all_n2o_df$min_gfapar_modis
+#values are all consistent 
+all_n2o_df$max_mean_fapar <- all_n2o_df$max_fapar-all_n2o_df$mean_fapar
+all_n2o_df$max_min_fapar <- all_n2o_df$max_fapar-all_n2o_df$min_fapar
+all_n2o_df$max_mean_gfapar <- all_n2o_df$max_gfapar-all_n2o_df$mean_gfapar
+all_n2o_df$max_min_gfapar <- all_n2o_df$max_gfapar-all_n2o_df$min_gfapar
+all_n2o_df$max_mean_fapar_35yrs <- all_n2o_df$max_fapar_35yrs-all_n2o_df$mean_fapar_35yrs
+all_n2o_df$max_min_fapar_35yrs <- all_n2o_df$max_fapar_35yrs-all_n2o_df$min_fapar_35yrs
 
 all_n2o_df$n2o_ugm2h[all_n2o_df$n2o_ugm2h<=0] <- NA
 all_n2o_df$n2o_a <- log(all_n2o_df$n2o_ugm2h)
@@ -432,37 +395,28 @@ forest2 <- subset(forest,is.na(rep)==T)
 dim(forest2)
 
 #check
-forest2$sqrt_Nfer_kgha[is.na(forest2$sqrt_Nfer_kgha)==T] <-0
+unique(subset(forest2,is.na(Nfer_kgha)==T)$file)#all convert to 0
+forest2$sqrt_Nfer_kgha[is.na(forest2$sqrt_Nfer_kgha)==T & forest2$file=="Xu-Ri et al. (2012) New Phytol"] <- 0
 
 forest2_field <- subset(forest2,method=="field")
 
-test1 <- (na.omit(forest2_field[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","CNrt_a","ndep_a",
+test1 <- (na.omit(forest2_field[,c("site_a","n2o_a","orgc_a","CNrt_a","ndep_a",
                                    "obs_moisture","Tg_a",
                                    "PPFD_total_a","PPFD_a",
-                                   "min_fapar_3g","max_fapar_3g","mean_fapar_3g","max_min_fapar_3g","max_mean_fapar_3g")]))
+                                   "min_fapar","max_fapar","mean_fapar","max_min_fapar","max_mean_fapar")]))
 dim(test1)
 stepwise(test1,"n2o_a")[[1]]
 
-mod1 <- (lmer(n2o_a~Tg_a+obs_moisture+ndep_a+(1|site_a),data=forest2_field))
+mod1 <- (lmer(n2o_a~Tg_a+obs_moisture+(1|site_a),data=forest2_field))
 summary(mod1)
 r.squaredGLMM(mod1)
 n1b <- visreg(mod1,"obs_moisture",type="contrast")
 n1c <- visreg(mod1,"Tg_a",type="contrast")
 
 #add one more?
-summary(lmer(n2o_a~Tg_a+obs_moisture+sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
-r.squaredGLMM(lmer(n2o_a~Tg_a+obs_moisture+sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
+summary(lmer(n2o_a~sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
+r.squaredGLMM(lmer(n2o_a~sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
 
-#test2
-test2 <- (na.omit(forest2_field[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","CNrt_a","ndep_a",
-                                   "vpd_a","Tg_a",
-                                   "PPFD_total_a","PPFD_a",
-                                   "max_fapar_modis","mean_fapar_modis","max_mean_fapar_modis")]))
-dim(test2)
-stepwise(test2,"n2o_a")[[1]]
-
-summary(lmer(n2o_a~Tg_a+sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
-r.squaredGLMM(lmer(n2o_a~Tg_a+sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
 
 #grassland - check rep
 unique(all_n2o_df$pft)
@@ -483,20 +437,21 @@ dim(grassland2)
 grassland2_field <- subset(grassland2,method=="field")
 dim(grassland2_field)
 summary(grassland2_field$Nfer_kgha)
-unique(subset(grassland2_field,is.na(Nfer_kgha)==T)$file)#all convert to 0
-grassland2_field$sqrt_Nfer_kgha[is.na(grassland2_field$sqrt_Nfer_kgha)==T] <- 0
+unique(subset(grassland2_field,is.na(Nfer_kgha)==T)$file)
+grassland2_field$sqrt_Nfer_kgha[is.na(grassland2_field$sqrt_Nfer_kgha)==T & grassland2_field$file=="Xu-Ri et al. (2012) New Phytol"] <- 0
 
 test2 <- (na.omit(grassland2_field[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","CNrt_a","ndep_a",
-                                   "Tg_a",
-                                   "PPFD_total_a","PPFD_a",
-                                   "min_fapar_3g","max_fapar_3g","mean_fapar_3g","max_min_fapar_3g","max_mean_fapar_3g")]))
+                                      "Tg_a",
+                                      "PPFD_total_a","PPFD_a",
+                                      "min_fapar","max_fapar","mean_fapar","max_min_fapar","max_mean_fapar")]))
 stepwise(test2,"n2o_a")[[1]]
 stepwise(test2,"n2o_a")[[2]]
 
-mod2<- (lmer(n2o_a~sqrt_Nfer_kgha+(1|site_a),data=test2))
+mod2<- (lmer(n2o_a~sqrt_Nfer_kgha+min_fapar+(1|site_a),data=test2))
 summary(mod2)
 r.squaredGLMM(mod2)
 n2a <- visreg(mod2,"sqrt_Nfer_kgha",type="contrast")
+n2a <- visreg(mod2,"min_fapar",type="contrast")
 
 #finally cropland
 cropland <- subset(all_n2o_df,pft=="cropland"|pft=="plantation"|pft=="fallow"|pft=="bare")
@@ -527,59 +482,24 @@ dim(cropland2_liao)
 test3 <- (na.omit(cropland2_liao[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","ndep_a",
                                     "vpd_a","Tg_a",
                                     "PPFD_total_a",
-                                    "min_fapar_3g","max_fapar_3g","mean_fapar_3g","max_min_fapar_3g","max_mean_fapar_3g")]))
+                                    "min_fapar","max_fapar","mean_fapar","max_min_fapar","max_mean_fapar")]))
 
 dim(test3)
 stepwise(test3,"n2o_a")[[1]]
 stepwise(test3,"n2o_a")[[2]]
-mod3<- ((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+ndep_a+vpd_a+max_fapar_3g+min_fapar_3g+(1|site_a),data=test3)))
-visreg(mod3,"sqrt_Nfer_kgha",type="contrast")
-visreg(mod3,"orgc_a",type="contrast")
-visreg(mod3,"PPFD_total_a",type="contrast")
-visreg(mod3,"ndep_a",type="contrast")
-visreg(mod3,"vpd_a",type="contrast")
-visreg(mod3,"vpd_a",type="contrast")
-visreg(mod3,"max_fapar_3g",type="contrast")
-visreg(mod3,"min_fapar_3g",type="contrast")
-r.squaredGLMM(mod3)
-summary(mod3)
 
-#fapar-3g
-test3 <- (na.omit(cropland2_liao[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","ndep_a",
-                                   "vpd_a","Tg_a",
-                                   "PPFD_total_a",
-                                   "max_fapar","mean_fapar")]))
-
-dim(test3)
-stepwise(test3,"n2o_a")[[1]]
-stepwise(test3,"n2o_a")[[2]]
-mod3<- ((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+ndep_a+vpd_a+max_fapar+mean_fapar+(1|site_a),data=test3)))
-
-r.squaredGLMM(mod3)
+#directly using existing models
+mod3 <- ((lmer(n2o_a~orgc_a+sqrt_Nfer_kgha+vpd_a+Tg_a+PPFD_total_a+max_fapar+min_fapar+(1|site_a),data=cropland2_liao)))
+r.squaredGLMM((lmer(n2o_a~orgc_a+sqrt_Nfer_kgha+vpd_a+Tg_a+PPFD_total_a+max_fapar+min_fapar+(1|site_a),data=cropland2_liao)))
 summary(mod3)
 
 visreg(mod3,"sqrt_Nfer_kgha",type="contrast")
 visreg(mod3,"orgc_a",type="contrast")
 visreg(mod3,"PPFD_total_a",type="contrast")
-visreg(mod3,"ndep_a",type="contrast")
 visreg(mod3,"vpd_a",type="contrast")
+visreg(mod3,"Tg_a",type="contrast")
 visreg(mod3,"max_fapar",type="contrast")
-visreg(mod3,"mean_fapar",type="contrast")
+visreg(mod3,"min_fapar",type="contrast")
+r.squaredGLMM(mod3)
+summary(mod3)
 
-
-summary((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+ndep_a+vpd_a+
-                max_fapar+mean_fapar+(1|site_a),data=test3)))
-r.squaredGLMM((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+ndep_a+vpd_a+
-                max_fapar+mean_fapar+(1|site_a),data=test3)))
-
-
-#check pft
-df1 <- unique(subset(all_n2o_df_removal,file!="cui et al. nature food" & method=="field" &is.na(n2o_ugm2h)==F)[,c("lon","lat","z","start_yr","end_yr","pft")])
-dim(df1)
-as.data.frame(df1 %>% group_by(pft)  %>% summarise(number = n()))
-
-#see what's going on 
-analyse_modobs2(all_n2o_df,"max_fapar","max_fapar_modis", type = "points",relative=TRUE)
-analyse_modobs2(all_n2o_df,"mean_fapar","mean_fapar_modis", type = "points",relative=TRUE)
-analyse_modobs2(all_n2o_df,"max_mean_fapar","max_mean_fapar_modis", type = "points",relative=TRUE)
-  
