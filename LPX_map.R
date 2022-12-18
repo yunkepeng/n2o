@@ -55,6 +55,8 @@ names(grassland_map) <- c("lon","lat","nfer")
 cropland_map$nfer[cropland_map$nfer == "NaN"] <- NA
 grassland_map$nfer[grassland_map$nfer == "NaN"] <- NA
 
+plot_map3(cropland_map) # unit in gN/m2/yr, after checking with /Users/yunpeng/data/LPX/document/1520-0477-bams-d-17-0212.1 (1).pdf
+
 cropland_nc <- list(df_to_grid(cropland_map,varnam = "nfer", 
                                lonnam = "lon", latnam = "lat"))
 names(cropland_nc) <- "nfer"
