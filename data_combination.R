@@ -395,7 +395,7 @@ forest2 <- subset(forest,is.na(rep)==T)
 dim(forest2)
 
 #check
-unique(subset(forest2,is.na(Nfer_kgha)==T)$file)#all convert to 0
+unique(subset(forest2,is.na(Nfer_kgha)==T)$file)
 forest2$sqrt_Nfer_kgha[is.na(forest2$sqrt_Nfer_kgha)==T & forest2$file=="Xu-Ri et al. (2012) New Phytol"] <- 0
 
 forest2_field <- subset(forest2,method=="field")
@@ -413,7 +413,7 @@ r.squaredGLMM(mod1)
 n1b <- visreg(mod1,"obs_moisture",type="contrast")
 n1c <- visreg(mod1,"Tg_a",type="contrast")
 
-#add one more?
+#Nfer is less good
 summary(lmer(n2o_a~sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
 r.squaredGLMM(lmer(n2o_a~sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
 
@@ -482,7 +482,7 @@ dim(cropland2_liao)
 test3 <- (na.omit(cropland2_liao[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","ndep_a",
                                     "vpd_a","Tg_a",
                                     "PPFD_total_a",
-                                    "min_fapar","max_fapar","mean_fapar","max_min_fapar","max_mean_fapar")]))
+                                    "min_fapar","max_fapar","mean_fapar")]))
 
 dim(test3)
 stepwise(test3,"n2o_a")[[1]]
