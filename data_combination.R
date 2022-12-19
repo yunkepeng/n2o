@@ -331,6 +331,39 @@ summary(fapar3g_df_zhu2)
 all_n2o_df <- merge(all_n2o_df,fapar3g_df_zhu2,
                     by=c("lon","lat","z","start_yr","end_yr"),all.x=TRUE)
 summary(all_n2o_df)
+
+#now, read LPX data
+lpx <- read.csv("~/data/n2o_Yunke/forcing/siteinfo_lpx_values.csv")
+all_n2o_df <- merge(all_n2o_df,lpx,by=c("lon","lat","z"),all.x=TRUE)
+
+all_n2o_df$forest_lpx_n2o <- all_n2o_df$n2o_forest_SH10*1000000/8766
+
+all_n2o_df$grassland_lpx_n2o <- (all_n2o_df$n2o_grassland_SH0+all_n2o_df$n2o_grassland_SH1-all_n2o_df$n2o_grassland_SH3+
+                                   all_n2o_df$n2o_grassland_SH1-all_n2o_df$n2o_grassland_SH6)*1000000/8766
+
+all_n2o_df$cropland_lpx_n2o <- (all_n2o_df$n2o_cropland_SH10+all_n2o_df$n2o_cropland_SH1-all_n2o_df$n2o_cropland_SH3+
+                                   all_n2o_df$n2o_cropland_SH1-all_n2o_df$n2o_cropland_SH6)*1000000/8766
+
+all_n2o_df$grassland_lpx_nfer <- all_n2o_df$nfer_grassland*10*(2020-1978+1) #from g/m2 to kg/ha (multiply with all years, to get accumulation values of these years)
+
+all_n2o_df$cropland_lpx_nfer <- all_n2o_df$nfer_cropland*10*(2020-1978+1)
+
+#csoil --> kg/m2#convert from kg/m2 to g/kg
+all_n2o_df$cropland_lpx_csoil <- (all_n2o_df$csoil_SH10+all_n2o_df$csoil_SH1-all_n2o_df$csoil_SH3+ all_n2o_df$csoil_SH1-all_n2o_df$csoil_SH6)/(1.3*0.1)
+summary(all_n2o_df$cropland_lpx_csoil) #g/m2 --> converted to g/kg -->assume soil density as 1.3 g/cm3?; assume soil organic C as 0.1m?
+#see here: https://www.unil.ch/files/live/sites/idyst/files/shared/Analytical%20platform/PDF_protocole/anglais/soils%20and%20sediments/Bulk%20density_2.0.pdf
+plot(all_n2o_df$ORGC~all_n2o_df$cropland_lpx_csoil)
+summary(all_n2o_df$ORGC)
+summary(all_n2o_df$cropland_lpx_csoil)
+
+#values conversion
+all_n2o_df$n2o_lpx_forest_a <- log(all_n2o_df$forest_lpx_n2o)
+all_n2o_df$n2o_lpx_grassland_a <- log(all_n2o_df$grassland_lpx_n2o)
+all_n2o_df$n2o_lpx_cropland_a <- log(all_n2o_df$cropland_lpx_n2o)
+all_n2o_df$sqrt_Nfer_lpx_grassland <- sqrt(all_n2o_df$grassland_lpx_nfer)
+all_n2o_df$sqrt_Nfer_lpx_cropland <- sqrt(all_n2o_df$cropland_lpx_nfer)
+all_n2o_df$cropland_lpx_csoil_a <- log(all_n2o_df$cropland_lpx_csoil)
+
 #values are all consistent 
 all_n2o_df$max_mean_fapar <- all_n2o_df$max_fapar-all_n2o_df$mean_fapar
 all_n2o_df$max_min_fapar <- all_n2o_df$max_fapar-all_n2o_df$min_fapar
@@ -369,6 +402,10 @@ all_n2o_df$obs_mineral_N_a <- log(all_n2o_df$mineral_N)
 
 all_n2o_df$sqrt_Nfer_kgha<- sqrt(all_n2o_df$Nfer_kgha)
 
+plot(all_n2o_df$n2o_lpx_cropland_a~all_n2o_df$sqrt_Nfer_lpx_cropland)
+summary(lm(all_n2o_df$n2o_lpx_cropland_a~all_n2o_df$sqrt_Nfer_lpx_cropland))
+summary(lm(all_n2o_df$n2o_lpx_grassland_a~all_n2o_df$sqrt_Nfer_lpx_grassland))
+
 #plot nfer tilisation
 ggplot(subset(all_n2o_df,pft=="cropland"|pft=="forest"|pft=="grassland"|pft=="fallow"),
        aes(x=Nfer_kgha,y=n2o_a,color=pft))+geom_point()
@@ -406,12 +443,38 @@ test1 <- (na.omit(forest2_field[,c("site_a","n2o_a","orgc_a","CNrt_a","ndep_a",
                                    "min_fapar","max_fapar","mean_fapar","max_min_fapar","max_mean_fapar")]))
 dim(test1)
 stepwise(test1,"n2o_a")[[1]]
+stepwise(test1,"n2o_a")[[2]]
 
 mod1 <- (lmer(n2o_a~Tg_a+obs_moisture+(1|site_a),data=forest2_field))
 summary(mod1)
 r.squaredGLMM(mod1)
-n1b <- visreg(mod1,"obs_moisture",type="contrast")
-n1c <- visreg(mod1,"Tg_a",type="contrast")
+
+forest2_field_sitemean <- aggregate(forest2_field,by=list(forest2_field$lon,forest2_field$lat,forest2_field$z), FUN=mean, na.rm=TRUE)
+
+mod2 <- (lm(n2o_lpx_forest_a~Tg_a+obs_moisture,data=forest2_field_sitemean))
+summary(mod2)
+
+mod1_moisture <- visreg(mod1,"obs_moisture",type="contrast");mod1_Tg <-visreg(mod1,"Tg_a",type="contrast")
+mod2_moisture <- visreg(mod2,"obs_moisture",type="contrast");mod2_Tg <- visreg(mod2,"Tg_a",type="contrast")
+
+fits_moisture <- dplyr::bind_rows(mutate(mod1_moisture$fit, plt = "Measurement"),mutate(mod2_moisture$fit, plt = "LPX"))
+fits_tg <- dplyr::bind_rows(mutate(mod1_Tg$fit, plt = "Measurement"),mutate(mod2_Tg$fit, plt = "LPX"))
+
+###converted to lm 
+visreg_ggplot <- function(obj,var_name,color1,color2){
+  final1 <- ggplot() + geom_line(data = obj, aes_string(var_name, "visregFit", group="plt", color="plt"),size=2) +
+    theme_classic()+theme(text = element_text(size=20),legend.position="none")+ 
+    geom_ribbon(data = obj,aes_string(var_name, ymin="visregLwr", ymax="visregUpr",fill="plt"),alpha=0.5)+
+    scale_colour_manual(values=c(Measurement=color1,LPX=color2))+
+    scale_fill_manual(values=c(Measurement=color1,LPX=color2))
+
+  return(final1)
+}
+
+g1 <- visreg_ggplot(fits_tg,"Tg_a","black","red")
+
+g2 <- visreg_ggplot(fits_moisture,"obs_moisture","black","red")
+
 
 #Nfer is less good
 summary(lmer(n2o_a~sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
@@ -440,18 +503,35 @@ summary(grassland2_field$Nfer_kgha)
 unique(subset(grassland2_field,is.na(Nfer_kgha)==T)$file)
 grassland2_field$sqrt_Nfer_kgha[is.na(grassland2_field$sqrt_Nfer_kgha)==T & grassland2_field$file=="Xu-Ri et al. (2012) New Phytol"] <- 0
 
-test2 <- (na.omit(grassland2_field[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","CNrt_a","ndep_a",
+test2 <- (na.omit(grassland2_field[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","ndep_a",
                                       "Tg_a",
                                       "PPFD_total_a","PPFD_a",
                                       "min_fapar","max_fapar","mean_fapar","max_min_fapar","max_mean_fapar")]))
 stepwise(test2,"n2o_a")[[1]]
 stepwise(test2,"n2o_a")[[2]]
 
-mod2<- (lmer(n2o_a~sqrt_Nfer_kgha+min_fapar+(1|site_a),data=test2))
-summary(mod2)
-r.squaredGLMM(mod2)
-n2a <- visreg(mod2,"sqrt_Nfer_kgha",type="contrast")
-n2a <- visreg(mod2,"min_fapar",type="contrast")
+mod3 <- (lmer(n2o_a~sqrt_Nfer_kgha+min_fapar+(1|site_a),data=grassland2_field))
+summary(mod3)
+r.squaredGLMM(mod3)
+
+grassland2_field_sitemean <- aggregate(grassland2_field,by=list(grassland2_field$lon,grassland2_field$lat,grassland2_field$z), FUN=mean, na.rm=TRUE)
+
+mod4 <- (lm(n2o_lpx_grassland_a~sqrt_Nfer_lpx_grassland+min_fapar,data=grassland2_field_sitemean))
+summary(mod4)
+r.squaredGLMM(mod4)
+
+mod3_nfer <- visreg(mod3,"sqrt_Nfer_kgha",type="contrast");mod3_minfapar <- visreg(mod3,"min_fapar",type="contrast")
+mod4_nfer <- visreg(mod4,"sqrt_Nfer_lpx_grassland",type="contrast");mod4_minfapar <- visreg(mod4,"min_fapar",type="contrast")
+#change column name to make it consistent 
+names(mod4_nfer$fit) <- names(mod3_nfer$fit[,!names(mod3_nfer$fit) %in% c("site_a")])
+
+fits_nfer <- dplyr::bind_rows(mutate(mod3_nfer$fit, plt = "Measurement"),mutate(mod4_nfer$fit, plt = "LPX"))
+fits_minfapar <- dplyr::bind_rows(mutate(mod3_minfapar$fit, plt = "Measurement"),mutate(mod4_minfapar$fit, plt = "LPX"))
+###converted to lm 
+
+g3 <- visreg_ggplot(fits_nfer,"sqrt_Nfer_kgha","black","red")
+g4 <- visreg_ggplot(fits_minfapar,"min_fapar","black","red")
+
 
 #finally cropland
 cropland <- subset(all_n2o_df,pft=="cropland"|pft=="plantation"|pft=="fallow"|pft=="bare")
@@ -488,18 +568,58 @@ dim(test3)
 stepwise(test3,"n2o_a")[[1]]
 stepwise(test3,"n2o_a")[[2]]
 
-#directly using existing models
-mod3 <- ((lmer(n2o_a~orgc_a+sqrt_Nfer_kgha+vpd_a+Tg_a+PPFD_total_a+max_fapar+min_fapar+(1|site_a),data=cropland2_liao)))
-r.squaredGLMM((lmer(n2o_a~orgc_a+sqrt_Nfer_kgha+vpd_a+Tg_a+PPFD_total_a+max_fapar+min_fapar+(1|site_a),data=cropland2_liao)))
-summary(mod3)
+#directly using existing models/ comparasion 
+mod5 <- ((lmer(n2o_a~orgc_a+sqrt_Nfer_kgha+vpd_a+Tg_a+PPFD_total_a+max_fapar+min_fapar+(1|site_a),data=cropland2_liao)))
+summary(mod5)
+AIC(mod5)
 
-visreg(mod3,"sqrt_Nfer_kgha",type="contrast")
-visreg(mod3,"orgc_a",type="contrast")
-visreg(mod3,"PPFD_total_a",type="contrast")
-visreg(mod3,"vpd_a",type="contrast")
-visreg(mod3,"Tg_a",type="contrast")
-visreg(mod3,"max_fapar",type="contrast")
-visreg(mod3,"min_fapar",type="contrast")
-r.squaredGLMM(mod3)
-summary(mod3)
+r.squaredGLMM(mod5)
+
+cropland2_liao_sitemean <- aggregate(cropland2_liao,by=list(cropland2_liao$lon,cropland2_liao$lat,cropland2_liao$z), FUN=mean, na.rm=TRUE)
+mod6 <- ((lm(n2o_lpx_cropland_a~cropland_lpx_csoil_a+sqrt_Nfer_lpx_cropland+vpd_a+Tg_a+PPFD_total_a+max_fapar+min_fapar,data=cropland2_liao_sitemean)))
+summary(mod6)
+
+mod5_nfer <- visreg(mod5,"sqrt_Nfer_kgha",type="contrast")
+mod5_soc <- visreg(mod5,"orgc_a",type="contrast")
+mod5_ppfd_total <- visreg(mod5,"PPFD_total_a",type="contrast")
+mod5_vpd <- visreg(mod5,"vpd_a",type="contrast")
+mod5_Tg <- visreg(mod5,"Tg_a",type="contrast")
+mod5_max_fapar <- visreg(mod5,"max_fapar",type="contrast")
+mod5_min_fapar <- visreg(mod5,"min_fapar",type="contrast")
+
+mod6_nfer <- visreg(mod6,"sqrt_Nfer_lpx_cropland",type="contrast")
+mod6_soc <- visreg(mod6,"cropland_lpx_csoil_a",type="contrast")
+mod6_ppfd_total <- visreg(mod6,"PPFD_total_a",type="contrast")
+mod6_vpd <- visreg(mod6,"vpd_a",type="contrast")
+mod6_Tg <- visreg(mod6,"Tg_a",type="contrast")
+mod6_max_fapar <- visreg(mod6,"max_fapar",type="contrast")
+mod6_min_fapar <- visreg(mod6,"min_fapar",type="contrast")
+
+#change column name to make it consistent 
+names(mod6_nfer$fit) <- names(mod5_nfer$fit[,!names(mod5_nfer$fit) %in% c("site_a")])
+names(mod6_soc$fit) <- names(mod5_soc$fit[,!names(mod5_soc$fit) %in% c("site_a")])
+names(mod6_ppfd_total$fit) <- names(mod5_ppfd_total$fit[,!names(mod5_ppfd_total$fit) %in% c("site_a")])
+names(mod6_vpd$fit) <- names(mod5_vpd$fit[,!names(mod5_vpd$fit) %in% c("site_a")])
+names(mod6_Tg$fit) <- names(mod5_Tg$fit[,!names(mod5_Tg$fit) %in% c("site_a")])
+names(mod6_max_fapar$fit) <- names(mod5_max_fapar$fit[,!names(mod5_max_fapar$fit) %in% c("site_a")])
+names(mod6_min_fapar$fit) <- names(mod5_min_fapar$fit[,!names(mod5_min_fapar$fit) %in% c("site_a")])
+
+fits_nfer <- dplyr::bind_rows(mutate(mod5_nfer$fit, plt = "Measurement"),mutate(mod6_nfer$fit, plt = "LPX"))
+fits_soc <- dplyr::bind_rows(mutate(mod5_soc$fit, plt = "Measurement"),mutate(mod6_soc$fit, plt = "LPX"))
+fits_ppfd_total <- dplyr::bind_rows(mutate(mod5_ppfd_total$fit, plt = "Measurement"),mutate(mod6_ppfd_total$fit, plt = "LPX"))
+fits_vpd <- dplyr::bind_rows(mutate(mod5_vpd$fit, plt = "Measurement"),mutate(mod6_vpd$fit, plt = "LPX"))
+fits_Tg <- dplyr::bind_rows(mutate(mod5_Tg$fit, plt = "Measurement"),mutate(mod6_Tg$fit, plt = "LPX"))
+fits_max_fapar <- dplyr::bind_rows(mutate(mod5_max_fapar$fit, plt = "Measurement"),mutate(mod6_max_fapar$fit, plt = "LPX"))
+fits_min_fapar <- dplyr::bind_rows(mutate(mod5_min_fapar$fit, plt = "Measurement"),mutate(mod6_min_fapar$fit, plt = "LPX"))
+
+###converted to lm 
+names(mod6_nfer$fit)
+g5 <- visreg_ggplot(fits_nfer,"sqrt_Nfer_kgha","black","red")
+g6 <- visreg_ggplot(fits_soc,"orgc_a","black","red")
+g7 <- visreg_ggplot(fits_ppfd_total,"PPFD_total_a","black","red")
+g8 <- visreg_ggplot(fits_vpd,"vpd_a","black","red")
+g9 <- visreg_ggplot(fits_Tg,"Tg_a","black","red")
+g10 <- visreg_ggplot(fits_max_fapar,"max_fapar","black","red")
+g11 <- visreg_ggplot(fits_min_fapar,"min_fapar","black","red")
+
 
