@@ -506,7 +506,7 @@ grassland2_field$sqrt_Nfer_kgha[is.na(grassland2_field$sqrt_Nfer_kgha)==T & gras
 test2 <- (na.omit(grassland2_field[,c("site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","ndep_a",
                                       "Tg_a",
                                       "PPFD_total_a","PPFD_a",
-                                      "min_fapar","max_fapar","mean_fapar","max_min_fapar","max_mean_fapar")]))
+                                      "min_fapar","max_fapar","mean_fapar")]))
 stepwise(test2,"n2o_a")[[1]]
 stepwise(test2,"n2o_a")[[2]]
 
