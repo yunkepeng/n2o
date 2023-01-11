@@ -29,18 +29,17 @@ library(hwsdr)
 #input data 
 df1 <- read_csv("~/data/n2o_wang_oikos/n2o_tables1.csv")
 df1_coord <- unique(df1[,c("longitude_degree","latitude_degree")])
-df1_coord$treatment <- "co2"
 
 df2 <- read_csv("~/data/n2o_wang_oikos/n2o_tables2.csv")
 df2_coord <- unique(df2[,c("longitude_degree","latitude_degree")])
-df2_coord$treatment <- "warming"
 
 df_all <- na.omit(as.data.frame(rbind(df1_coord,df2_coord)))
-names(df_all) <- c("lon","lat","treatment")
+names(df_all) <- c("lon","lat")
+df_all <- unique(df_all)
 #project data
-newmap <- getMap(resolution = "low")
-plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
-points(df_all$lon,df_all$lat, col="red", pch=16,cex=1)
+#newmap <- getMap(resolution = "low")
+#plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
+#points(df_all$lon,df_all$lat, col="red", pch=16,cex=1)
 
 #get elevations
 df_all

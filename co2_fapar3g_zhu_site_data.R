@@ -19,23 +19,9 @@ df2_coord$treatment <- "warming"
 
 df_all <- na.omit(as.data.frame(rbind(df1_coord,df2_coord)))
 names(df_all) <- c("lon","lat","treatment")
-#project data
-newmap <- getMap(resolution = "low")
-plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
-points(df_all$lon,df_all$lat, col="red", pch=16,cex=1)
 
-#get elevations
-df_all
-df_all$sitename <- paste("sitename",c(1:nrow(df_all)),sep="")
-df_etopo <- ingest(
-  df_all,
-  source = "etopo1",
-  dir = "~/data/etopo/"
-)
-df_all$z <- as.numeric(as.data.frame(df_etopo$data))
-summary(df_all$z)
 #measurement year recorded in paper: 1990-2019
-sitemean <- df_all[,c("lon","lat")]
+sitemean <- unique(df_all[,c("lon","lat")])
 
 fapar_df_new <- list.files("/Users/yunpeng/data/fapar3g_zhu/data/",full.names = T)
 year_info <- substr(sub('.*AVHRRBUVI04.', '', fapar_df_new),1,nchar(sub('.*AVHRRBUVI04.', '', fapar_df_new))-8) 

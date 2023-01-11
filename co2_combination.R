@@ -60,23 +60,21 @@ df1$log_dn2o[df1$log_dn2o=="-Inf"] <- NA
 #now, start coordinates conversion
 #add fapar3g from 1/12 resolution (monthly max and mean)
 fapar3g_df_zhu <- read.csv("~/data/n2o_Yunke/forcing/co2_siteinfo_measurementyear_fapar3g_zhu.csv")
-
+dim(fapar3g_df_zhu)
 summary(fapar3g_df_zhu)
 
 fapar3g_df_zhu <- fapar3g_df_zhu %>% mutate(min_fapar = coalesce(min_fapar_nfocal0,min_fapar_nfocal1,min_fapar_nfocal2)) %>%
   mutate(mean_fapar = coalesce(mean_fapar_nfocal0,mean_fapar_nfocal1,mean_fapar_nfocal2)) %>%
   mutate(max_fapar = coalesce(max_fapar_nfocal0,max_fapar_nfocal1,max_fapar_nfocal2))
-fapar3g_df_zhu <- fapar3g_df_zhu[,c("lon","lat","min_fapar","mean_fapar","max_fapar")]
-fapar3g_df_zhu2 <- aggregate(fapar3g_df_zhu,by=list(fapar3g_df_zhu$lon,fapar3g_df_zhu$lat), mean,na.rm=TRUE)
+fapar3g_df_zhu2 <- fapar3g_df_zhu[,c("lon","lat","min_fapar","mean_fapar","max_fapar")]
 
 #read climate and soil predictors
 climates_soil <- read.csv("~/data/n2o_Yunke/forcing/co2_siteinfo_predictors.csv")
-climate_soil2 <- aggregate(climates_soil,by=list(climates_soil$lon,climates_soil$lat), mean,na.rm=TRUE)
 
 #merge with both
 df1_a <- merge(df1,fapar3g_df_zhu2,by=c("lon","lat"),all.x=TRUE)
 
-df1_all <- merge(df1_a,climate_soil2[,c("lon","lat","PPFD_total_fapar","PPFD_total","Tg","PPFD","vpd","alpha","ndep","ORGC")],
+df1_all <- merge(df1_a,climates_soil[,c("lon","lat","z","PPFD_total_fapar","PPFD_total","Tg","PPFD","vpd","alpha","ndep","ORGC")],
                  by=c("lon","lat"),all.x=TRUE)
 
 #create site-name
@@ -97,21 +95,20 @@ df1_all[sapply(df1_all, is.infinite)] <- NA
 df1_all$Nfer_a <- sqrt(df1_all$Nfer)
 df1_all$Nfer_a[is.na(df1_all$Nfer_a)==T] <- 0
 
-df1_all_test <- na.omit(df1_all[,c("log_co2","Nfer_a","min_fapar","mean_fapar","max_fapar","PPFD_total_a","PPFD_a",
+df1_all_test <- na.omit(df1_all[,c("log_co2","Nfer_a","min_fapar","mean_fapar","max_fapar","PPFD_total_a",
                                    "Tg","vpd_a","ndep_a","orgc_a","logr")])
 stepwise_lm(df1_all_test,"logr")[[1]]
 stepwise_lm(df1_all_test,"logr")[[2]]
 
-mod1 <- (lm(logr~log_co2+Nfer_a+PPFD_a+vpd_a+mean_fapar,df1_all_test))
+mod1 <- (lm(logr~log_co2+Nfer_a+PPFD_total_a,df1_all_test))
 summary(mod1)
 length(unique(df1_all_test$Tg))
 mod1a <- visreg(mod1,"log_co2",type="contrast")
 mod1b <-visreg(mod1,"Nfer_a",type="contrast")
-mod1c <- visreg(mod1,"PPFD_a",type="contrast")
-mod1d <- visreg(mod1,"vpd_a",type="contrast")
-mod1e <- visreg(mod1,"mean_fapar",type="contrast")
+mod1c <- visreg(mod1,"PPFD_total_a",type="contrast")
 
-summary(lmer(logr~log_co2+Nfer_a+PPFD_a+vpd_a+mean_fapar,df1_all))
+summary(df1_all$logr/df1_all$log_co2)
+summary(df1_all$logr)
 
 #warming only effect
 df2 <- read_csv("~/data/n2o_wang_oikos/n2o_tables2.csv")
@@ -141,7 +138,7 @@ df2 <- subset(df2,logr!=min(df2$logr,na.rm=T))
 #merge with both
 df2_a <- merge(df2,fapar3g_df_zhu2,by=c("lon","lat"),all.x=TRUE)
 
-df2_all <- merge(df2_a,climate_soil2[,c("lon","lat","PPFD_total_fapar","PPFD_total","Tg","PPFD","vpd","alpha","ndep","ORGC")],
+df2_all <- merge(df2_a,climate_soil2[,c("lon","lat","z","PPFD_total_fapar","PPFD_total","Tg","PPFD","vpd","alpha","ndep","ORGC")],
                  by=c("lon","lat"),all.x=TRUE)
 
 #create site-name
@@ -178,7 +175,6 @@ summary(mod2)
 mod2a <- visreg(mod2,"orgc_a",type="contrast")
 mod2b <-visreg(mod2,"dT",type="contrast")
 
-#not used
 df2_all_test <- na.omit(df2_all[,c("dT","Nfer_a","min_fapar","mean_fapar","max_fapar","PPFD_total_a",
                                    "vpd_a","ndep_a","orgc_a","logr")])
 stepwise_lm(df2_all_test,"logr")[[1]]
