@@ -242,8 +242,8 @@ site_record2 <- as.data.frame(site_record2 %>% group_by(lon,lat)  %>% summarise(
 dim(site_record2)
 dim(unique(site_record2[,c("lon","lat")]))
 summary(site_record2)
-csvfile <- paste("~/data/n2o_Yunke/forcing/siteinfo.csv")
-write_csv(site_record2[,c("lon","lat","z")], path = csvfile)
+#csvfile <- paste("~/data/n2o_Yunke/forcing/siteinfo.csv")
+#write_csv(site_record2[,c("lon","lat","z")], path = csvfile)
 
 #first merge to get all elevation values
 site_record2$sitename <- paste("siteno",c(1:nrow(site_record2)),sep="")
@@ -416,13 +416,36 @@ mod1 <- (lmer(n2o_a~Tg_a+obs_moisture+(1|site_a),data=forest2_field))
 summary(mod1)
 r.squaredGLMM(mod1)
 
-#AAA: output forest data-frame for LPX model use
-forest_lpx <- read.csv("~/data/n2o_Yunke/forcing/forest_field_lpx_output.csv")
-forest_lpx$n2o_a <- log(forest_lpx$forest_n2o)
-forest_lpx$obs_moisture <- forest_lpx$moisture
-forest_lpx$Tg_a <- forest_lpx$growth_temperature
+#applied in LPX model
+output_df_forest <- na.omit(forest2_field[,c("lon","lat","z","start_yr","end_yr",
+                                             "n2o_a","Tg_a","obs_moisture")])
+LPX_forest_sitemean <- unique(output_df_forest[,c("lon","lat")])
+dim(LPX_forest_sitemean)
 
-mod2 <- (lm(n2o_a~Tg_a+obs_moisture,data=forest_lpx))
+lpx_forest_n2o <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_n2o.csv"),pft=="forest")
+lpx_forest_n2o <- (select(lpx_forest_n2o, -c(z,pft)) )
+
+lpx_forest_moisture <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_moisture.csv"),pft=="forest")
+lpx_forest_moisture <- (select(lpx_forest_moisture, -c(z,pft)) )
+
+lpx_forest_temperature <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_T.csv"),pft=="forest")
+lpx_forest_temperature <- (select(lpx_forest_temperature, -c(z,pft)) )
+
+LPX_forest_sitemean_n2o <- merge(LPX_forest_sitemean,lpx_forest_n2o,by=c("lon","lat"),all.x=TRUE)
+LPX_forest_sitemean_moisture <- merge(LPX_forest_sitemean,lpx_forest_moisture,by=c("lon","lat"),all.x=TRUE)
+LPX_forest_sitemean_temperature <- merge(LPX_forest_sitemean,lpx_forest_temperature,by=c("lon","lat"),all.x=TRUE)
+
+#check if coordinates are consistent
+summary(LPX_forest_sitemean_n2o$lat-LPX_forest_sitemean_moisture$lat)
+summary(LPX_forest_sitemean_temperature$lat-LPX_forest_sitemean_moisture$lat)
+
+n2o_final <- log(data.frame(x=unlist(LPX_forest_sitemean_n2o[,c(3:39)])))
+moisture_final <- data.frame(x=unlist(LPX_forest_sitemean_moisture[,c(3:39)]))
+Tg_final <- data.frame(x=unlist(LPX_forest_sitemean_temperature[,c(3:39)]))
+
+final_forest_lpx <- as.data.frame(cbind(n2o_final,moisture_final,Tg_final))
+names(final_forest_lpx) <- c("n2o_a","obs_moisture","Tg_a")
+mod2 <- (lm(n2o_a~Tg_a+obs_moisture,final_forest_lpx))
 summary(mod2)
 
 mod1_moisture <- visreg(mod1,"obs_moisture",type="contrast");mod1_Tg <-visreg(mod1,"Tg_a",type="contrast")
@@ -446,14 +469,6 @@ g1 <- visreg_ggplot(fits_tg,"Tg_a","black","red")
 g1
 g2 <- visreg_ggplot(fits_moisture,"obs_moisture","black","red")
 g2
-
-hist(forest2_field$obs_moisture)
-hist(forest_lpx$obs_moisture)
-
-#Nfer is less good
-summary(lmer(n2o_a~sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
-r.squaredGLMM(lmer(n2o_a~sqrt_Nfer_kgha+(1|site_a),data=forest2_field))
-
 
 #grassland - check rep
 unique(all_n2o_df$pft)
@@ -488,27 +503,54 @@ mod3 <- (lmer(n2o_a~sqrt_Nfer_kgha+min_fapar+(1|site_a),data=grassland2_field))
 summary(mod3)
 r.squaredGLMM(mod3)
 
-#AAA: output grassland data-frame for LPX model use
-grassland_lpx <- read.csv("/Users/yunpeng/data/n2o_Yunke/forcing/grassland_field_lpx_output.csv")
-grassland_lpx$sqrt_Nfer_kgha <- sqrt(grassland_lpx$nfer_2*10)-sqrt(grassland_lpx$nfer_1*10)
-#unit: gN/m2/yr --> kg/ha
-grassland_lpx$n2o_lpx_grassland_a <- log(grassland_lpx$n2o_2) - log(grassland_lpx$n2o_1)
+#applied in LPX model
+output_df_grassland <- na.omit(grassland2_field[,c("lon","lat","z","start_yr","end_yr",
+                                                   "n2o_a","sqrt_Nfer_kgha","min_fapar")])
 
-mod4 <- (lm(n2o_lpx_grassland_a~sqrt_Nfer_kgha,data=grassland_lpx))
+LPX_grassland_sitemean <- unique(output_df_grassland[,c("lon","lat")])
+dim(LPX_grassland_sitemean)
+
+lpx_grassland_n2o <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_n2o.csv"),pft=="grassland")
+lpx_grassland_n2o <- (select(lpx_grassland_n2o, -c(z,pft)) )
+
+lpx_grassland_nfer <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_nfer.csv"),pft=="grassland")
+lpx_grassland_nfer <- (select(lpx_grassland_nfer, -c(z,pft)) )
+
+lpx_grassland_minfapar <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_minfapar.csv"),pft=="grassland")
+lpx_grassland_minfapar <- (select(lpx_grassland_minfapar, -c(z,pft)) )
+
+LPX_grassland_sitemean_n2o <- merge(LPX_grassland_sitemean,lpx_grassland_n2o,by=c("lon","lat"),all.x=TRUE)
+LPX_grassland_sitemean_nfer <- merge(LPX_grassland_sitemean,lpx_grassland_nfer,by=c("lon","lat"),all.x=TRUE)
+LPX_grassland_sitemean_minfapar <- merge(LPX_grassland_sitemean,lpx_grassland_minfapar,by=c("lon","lat"),all.x=TRUE)
+
+#check if coordinates are consistent
+summary(LPX_grassland_sitemean_n2o$lat-LPX_grassland_sitemean_nfer$lat)
+summary(LPX_grassland_sitemean_nfer$lat-LPX_grassland_sitemean_minfapar$lat)
+
+grass_n2o <- log(data.frame(x=unlist(LPX_grassland_sitemean_n2o[,c(3:39)])))
+nfer_n2o <- sqrt(data.frame(x=unlist(LPX_grassland_sitemean_nfer[,c(3:39)])))
+minfapar_n2o <- data.frame(x=unlist(LPX_grassland_sitemean_minfapar[,c(3:39)]))
+
+final_grassland_lpx <- as.data.frame(cbind(grass_n2o,nfer_n2o,minfapar_n2o))
+names(final_grassland_lpx) <- c("n2o_a","sqrt_Nfer_kgha","min_fapar")
+
+mod4 <- (lm(n2o_a~sqrt_Nfer_kgha+min_fapar,data=final_grassland_lpx))
 summary(mod4)
 r.squaredGLMM(mod4)
 
 mod3_nfer <- visreg(mod3,"sqrt_Nfer_kgha",type="contrast");mod3_minfapar <- visreg(mod3,"min_fapar",type="contrast")
-mod4_nfer <- visreg(mod4,"sqrt_Nfer_kgha",type="contrast")
+mod4_nfer <- visreg(mod4,"sqrt_Nfer_kgha",type="contrast");mod4_minfapar <- visreg(mod4,"min_fapar",type="contrast")
 
 fits_nfer <- dplyr::bind_rows(mutate(mod3_nfer$fit, plt = "Measurement"),mutate(mod4_nfer$fit, plt = "LPX"))
+fits_minfapar <- dplyr::bind_rows(mutate(mod3_minfapar$fit, plt = "Measurement"),mutate(mod4_minfapar$fit, plt = "LPX"))
+
 ###converted to lm 
 
 g3 <- visreg_ggplot(fits_nfer,"sqrt_Nfer_kgha","black","red")
 g3
 
 g4 <- visreg_ggplot(fits_minfapar,"min_fapar","black","red")
-
+g4
 
 #finally cropland
 cropland <- subset(all_n2o_df,pft=="cropland"|pft=="plantation"|pft=="fallow"|pft=="bare")
@@ -551,20 +593,71 @@ summary(mod5)
 AIC(mod5)
 r.squaredGLMM(mod5)
 
-#AAA: output cropland data-frame for LPX model use
+#applied in LPX model
 output_df_cropland <- na.omit(cropland2_liao[,c("lon","lat","z","start_yr","end_yr",
                                                 "sqrt_Nfer_kgha","orgc_a","n2o_a","vpd_a","Tg_a","PPFD_total_a","max_fapar","min_fapar")])
-output_df_cropland <- unique(output_df_cropland[,c("lon","lat","z","start_yr","end_yr")])
 
-output_df_forest$pft <- "forest"
-output_df_grassland$pft <- "grassland"
-output_df_cropland$pft <- "cropland"
-output_lpx <- as.data.frame(rbind(output_df_forest,output_df_grassland,output_df_cropland))
-csvfile <- paste("~/data/n2o_Yunke/forcing/lpx_sites_field.csv")
-write_csv(output_lpx, path = csvfile)
+LPX_cropland_sitemean <- unique(output_df_cropland[,c("lon","lat")])
+dim(LPX_cropland_sitemean)
 
-cropland2_liao_sitemean <- aggregate(cropland2_liao,by=list(cropland2_liao$lon,cropland2_liao$lat,cropland2_liao$z), FUN=mean, na.rm=TRUE)
-mod6 <- ((lm(n2o_lpx_cropland_a~cropland_lpx_csoil_a+sqrt_Nfer_lpx_cropland+vpd_a+Tg_a+PPFD_total_a+max_fapar+min_fapar,data=cropland2_liao_sitemean)))
+lpx_cropland_n2o <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_n2o.csv"),pft=="cropland")
+lpx_cropland_n2o <- (select(lpx_cropland_n2o, -c(z,pft)) )
+
+lpx_cropland_nfer <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_nfer.csv"),pft=="cropland")
+lpx_cropland_nfer <- (select(lpx_cropland_nfer, -c(z,pft)) )
+
+lpx_cropland_vpd <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_vpd.csv"),pft=="cropland")
+lpx_cropland_vpd <- (select(lpx_cropland_vpd, -c(z,pft)) )
+
+lpx_cropland_temperature <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_T.csv"),pft=="cropland")
+lpx_cropland_temperature <- (select(lpx_cropland_temperature, -c(z,pft)) )
+
+lpx_cropland_PPFD <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_PPFD.csv"),pft=="cropland")
+lpx_cropland_PPFD <- (select(lpx_cropland_PPFD, -c(z,pft)) )
+
+lpx_cropland_maxfapar <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_maxfapar.csv"),pft=="cropland")
+lpx_cropland_maxfapar <- (select(lpx_cropland_maxfapar, -c(z,pft)) )
+
+lpx_cropland_minfapar <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_minfapar.csv"),pft=="cropland")
+lpx_cropland_minfapar <- (select(lpx_cropland_minfapar, -c(z,pft)) )
+
+LPX_cropland_sitemean_n2o <- merge(LPX_cropland_sitemean,lpx_cropland_n2o,by=c("lon","lat"),all.x=TRUE)
+LPX_cropland_sitemean_nfer <- merge(LPX_cropland_sitemean,lpx_cropland_nfer,by=c("lon","lat"),all.x=TRUE)
+LPX_cropland_sitemean_vpd <- merge(LPX_cropland_sitemean,lpx_cropland_vpd,by=c("lon","lat"),all.x=TRUE)
+LPX_cropland_sitemean_temperature <- merge(LPX_cropland_sitemean,lpx_cropland_temperature,by=c("lon","lat"),all.x=TRUE)
+LPX_cropland_sitemean_PPFD <- merge(LPX_cropland_sitemean,lpx_cropland_PPFD,by=c("lon","lat"),all.x=TRUE)
+LPX_cropland_sitemean_maxfapar <- merge(LPX_cropland_sitemean,lpx_cropland_maxfapar,by=c("lon","lat"),all.x=TRUE)
+LPX_cropland_sitemean_minfapar <- merge(LPX_cropland_sitemean,lpx_cropland_minfapar,by=c("lon","lat"),all.x=TRUE)
+
+lpx_soc <- (unique(output_df_cropland[,c("lon","lat","orgc_a")]))
+LPX_cropland_sitemean_soc <- merge(LPX_cropland_sitemean,lpx_soc,by=c("lon","lat"),all.x=TRUE)
+LPX_cropland_sitemean_soc[,c(4:39)] <- LPX_cropland_sitemean_soc[,3] #expand to multiple years, though with the same value
+
+#check if coordinates are consistent
+summary(LPX_cropland_sitemean_n2o$lat-LPX_cropland_sitemean_nfer$lat)
+summary(LPX_cropland_sitemean_nfer$lat-LPX_cropland_sitemean_vpd$lat)
+summary(LPX_cropland_sitemean_vpd$lat-LPX_cropland_sitemean_temperature$lat)
+summary(LPX_cropland_sitemean_temperature$lat-LPX_cropland_sitemean_PPFD$lat)
+summary(LPX_cropland_sitemean_PPFD$lat-LPX_cropland_sitemean_maxfapar$lat)
+summary(LPX_cropland_sitemean_maxfapar$lat-LPX_cropland_sitemean_minfapar$lat)
+summary(LPX_cropland_sitemean_minfapar$lat-LPX_cropland_sitemean_soc$lat)
+
+cropland_n2o <- log(data.frame(x=unlist(LPX_cropland_sitemean_n2o[,c(3:39)])))
+nfer_n2o <- sqrt(data.frame(x=unlist(LPX_cropland_sitemean_nfer[,c(3:39)])))
+vpd_n2o <- log(data.frame(x=unlist(LPX_cropland_sitemean_vpd[,c(3:39)])))
+temperature_n2o <- data.frame(x=unlist(LPX_cropland_sitemean_temperature[,c(3:39)]))
+PPFD_n2o <- log(data.frame(x=unlist(LPX_cropland_sitemean_PPFD[,c(3:39)])))
+maxfapar_n2o <- data.frame(x=unlist(LPX_cropland_sitemean_maxfapar[,c(3:39)]))
+minfapar_n2o <- data.frame(x=unlist(LPX_cropland_sitemean_minfapar[,c(3:39)]))
+soc_n2o <- data.frame(x=unlist(LPX_cropland_sitemean_soc[,c(3:39)]))
+
+final_cropland_lpx <- as.data.frame(cbind(cropland_n2o,nfer_n2o,vpd_n2o,
+                                           temperature_n2o,PPFD_n2o,
+                                           maxfapar_n2o,minfapar_n2o,soc_n2o))
+names(final_cropland_lpx) <- c("n2o_a","sqrt_Nfer_kgha","vpd_a","Tg_a",
+                                "PPFD_total_a","max_fapar","min_fapar","orgc_a")
+
+mod6 <- ((lm(n2o_a~orgc_a+sqrt_Nfer_kgha+vpd_a+Tg_a+PPFD_total_a+max_fapar+min_fapar,data=final_cropland_lpx)))
 summary(mod6)
 
 mod5_nfer <- visreg(mod5,"sqrt_Nfer_kgha",type="contrast")
@@ -575,22 +668,13 @@ mod5_Tg <- visreg(mod5,"Tg_a",type="contrast")
 mod5_max_fapar <- visreg(mod5,"max_fapar",type="contrast")
 mod5_min_fapar <- visreg(mod5,"min_fapar",type="contrast")
 
-mod6_nfer <- visreg(mod6,"sqrt_Nfer_lpx_cropland",type="contrast")
-mod6_soc <- visreg(mod6,"cropland_lpx_csoil_a",type="contrast")
+mod6_nfer <- visreg(mod6,"sqrt_Nfer_kgha",type="contrast")
+mod6_soc <- visreg(mod6,"orgc_a",type="contrast")
 mod6_ppfd_total <- visreg(mod6,"PPFD_total_a",type="contrast")
 mod6_vpd <- visreg(mod6,"vpd_a",type="contrast")
 mod6_Tg <- visreg(mod6,"Tg_a",type="contrast")
 mod6_max_fapar <- visreg(mod6,"max_fapar",type="contrast")
 mod6_min_fapar <- visreg(mod6,"min_fapar",type="contrast")
-
-#change column name to make it consistent 
-names(mod6_nfer$fit) <- names(mod5_nfer$fit[,!names(mod5_nfer$fit) %in% c("site_a")])
-names(mod6_soc$fit) <- names(mod5_soc$fit[,!names(mod5_soc$fit) %in% c("site_a")])
-names(mod6_ppfd_total$fit) <- names(mod5_ppfd_total$fit[,!names(mod5_ppfd_total$fit) %in% c("site_a")])
-names(mod6_vpd$fit) <- names(mod5_vpd$fit[,!names(mod5_vpd$fit) %in% c("site_a")])
-names(mod6_Tg$fit) <- names(mod5_Tg$fit[,!names(mod5_Tg$fit) %in% c("site_a")])
-names(mod6_max_fapar$fit) <- names(mod5_max_fapar$fit[,!names(mod5_max_fapar$fit) %in% c("site_a")])
-names(mod6_min_fapar$fit) <- names(mod5_min_fapar$fit[,!names(mod5_min_fapar$fit) %in% c("site_a")])
 
 fits_nfer <- dplyr::bind_rows(mutate(mod5_nfer$fit, plt = "Measurement"),mutate(mod6_nfer$fit, plt = "LPX"))
 fits_soc <- dplyr::bind_rows(mutate(mod5_soc$fit, plt = "Measurement"),mutate(mod6_soc$fit, plt = "LPX"))
@@ -600,8 +684,6 @@ fits_Tg <- dplyr::bind_rows(mutate(mod5_Tg$fit, plt = "Measurement"),mutate(mod6
 fits_max_fapar <- dplyr::bind_rows(mutate(mod5_max_fapar$fit, plt = "Measurement"),mutate(mod6_max_fapar$fit, plt = "LPX"))
 fits_min_fapar <- dplyr::bind_rows(mutate(mod5_min_fapar$fit, plt = "Measurement"),mutate(mod6_min_fapar$fit, plt = "LPX"))
 
-###converted to lm 
-names(mod6_nfer$fit)
 g5 <- visreg_ggplot(fits_nfer,"sqrt_Nfer_kgha","black","red")
 g6 <- visreg_ggplot(fits_soc,"orgc_a","black","red")
 g7 <- visreg_ggplot(fits_ppfd_total,"PPFD_total_a","black","red")
@@ -610,4 +692,33 @@ g9 <- visreg_ggplot(fits_Tg,"Tg_a","black","red")
 g10 <- visreg_ggplot(fits_max_fapar,"max_fapar","black","red")
 g11 <- visreg_ggplot(fits_min_fapar,"min_fapar","black","red")
 
+g5
+g6
+g7
+g8
+g9
+g10
+g11
+
+#AAA: output cropland data-frame for LPX model use
+output_df_forest <- na.omit(forest2_field[,c("lon","lat","z","start_yr","end_yr",
+                                                "n2o_a","Tg_a","obs_moisture")])
+output_df_forest <- unique(output_df_forest[,c("lon","lat","z","start_yr","end_yr")])
+
+output_df_grassland <- na.omit(grassland2_field[,c("lon","lat","z","start_yr","end_yr",
+                                             "n2o_a","sqrt_Nfer_kgha","min_fapar")])
+output_df_grassland <- unique(output_df_grassland[,c("lon","lat","z","start_yr","end_yr")])
+
+output_df_cropland <- na.omit(cropland2_liao[,c("lon","lat","z","start_yr","end_yr",
+                                                "sqrt_Nfer_kgha","orgc_a","n2o_a","vpd_a","Tg_a","PPFD_total_a","max_fapar","min_fapar")])
+output_df_cropland <- unique(output_df_cropland[,c("lon","lat","z","start_yr","end_yr")])
+
+output_df_forest$pft <- "forest"
+output_df_grassland$pft <- "grassland"
+output_df_cropland$pft <- "cropland"
+
+output_lpx <- as.data.frame(rbind(output_df_forest,output_df_grassland,output_df_cropland))
+
+#csvfile <- paste("~/data/n2o_Yunke/forcing/lpx_sites_field.csv")
+#write_csv(output_lpx, path = csvfile)
 
