@@ -181,8 +181,8 @@ forest <- subset(df_all,pft=="forest")
 grassland <- subset(df_all,pft=="grassland")
 cropland <- subset(df_all,pft=="cropland")
 
-#a1 <- raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",band=171)
-#plot(a1) # unit in gN/m2
+a1 <- raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",band=171)
+plot(a1) # unit in gN/m2
 #NH4CROP, NO3CROP, NH4PAST, NO3PAST
 #band: 1-171
 #Nfertilisation is during 1980-2016
@@ -452,16 +452,8 @@ for (i in c(1561:2004)) {
              as_tibble() %>% right_join(forest, by = c("lon", "lat")))[,1]
   
   lai_forest_all <- as.data.frame(cbind(lai1,lai2,lai3,lai4,lai5,lai6,lai7,lai8,lai9,lai10))
-  #conversion
-  
-  pft_forest_all[pft_forest_all<=0] <- NA
-  lai_forest_all[lai_forest_all<=0] <- NA
-  #get NA values exist in either of data-frame - and then indicate it in both dataframe
-  #so that it is ready for weighted-mean
-  i1 <- NA^(is.na(pft_forest_all)| is.na(lai_forest_all))
-  pft_forest_all <- pft_forest_all*i1
-  lai_forest_all <- lai_forest_all*i1
-  lai_forest_monthly <- rowSums(lai_forest_all*pft_forest_all,na.rm=T)/rowSums(pft_forest_all,na.rm=T)
+
+  lai_forest_monthly <- rowSums(lai_forest_all*pft_forest_all,na.rm=T)
   empty_data1[1:nrow(forest),i-1560]<- lai_forest_monthly
   
   #cropland
@@ -482,15 +474,8 @@ for (i in c(1561:2004)) {
              as_tibble() %>% right_join(cropland, by = c("lon", "lat")))[,1]
  
   lai_cropland_all <- as.data.frame(cbind(lai11,lai12))
-  #conversion
-  pft_cropland_all[pft_cropland_all<=0] <- NA
-  lai_cropland_all[lai_cropland_all<=0] <- NA
-  #get NA values exist in either of data-frame - and then indicate it in both dataframe
-  #so that it is ready for weighted-mean
-  i1 <- NA^(is.na(pft_cropland_all)| is.na(lai_cropland_all))
-  pft_cropland_all <- pft_cropland_all*i1
-  lai_cropland_all <- lai_cropland_all*i1
-  lai_cropland_monthly <- rowSums(lai_cropland_all*pft_cropland_all,na.rm=T)/rowSums(pft_cropland_all,na.rm=T)
+  
+  lai_cropland_monthly <- rowSums(lai_cropland_all*pft_cropland_all,na.rm=T)
   empty_data2[1:nrow(cropland),i-1560]<- lai_cropland_monthly
   
   #grassland
@@ -511,15 +496,8 @@ for (i in c(1561:2004)) {
               as_tibble() %>% right_join(grassland, by = c("lon", "lat")))[,1]
   
   lai_grassland_all <- as.data.frame(cbind(lai13,lai14))
-  #conversion
-  pft_grassland_all[pft_grassland_all<=0] <- NA
-  lai_grassland_all[lai_grassland_all<=0] <- NA
-  #get NA values exist in either of data-frame - and then indicate it in both dataframe
-  #so that it is ready for weighted-mean
-  i1 <- NA^(is.na(pft_grassland_all)| is.na(lai_grassland_all))
-  pft_grassland_all <- pft_grassland_all*i1
-  lai_grassland_all <- lai_grassland_all*i1
-  lai_grassland_monthly <- rowSums(lai_grassland_all*pft_grassland_all,na.rm=T)/rowSums(pft_grassland_all,na.rm=T)
+  
+  lai_grassland_monthly <- rowSums(lai_grassland_all*pft_grassland_all,na.rm=T)
   empty_data3[1:nrow(grassland),i-1560]<- lai_grassland_monthly
 } 
 

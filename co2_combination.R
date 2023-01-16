@@ -7,6 +7,15 @@ library(lmerTest)
 source("/Users/yunpeng/yunkepeng/CNuptake_MS/R/stepwise.R")
 source("/Users/yunpeng/yunkepeng/CNuptake_MS/R/stepwise_lm.R")
 library(visreg)
+visreg_ggplot <- function(obj,var_name,color1,color2){
+  final1 <- ggplot() + geom_line(data = obj, aes_string(var_name, "visregFit", group="plt", color="plt"),size=2) +
+    theme_classic()+theme(text = element_text(size=20),legend.position="none")+ 
+    geom_ribbon(data = obj,aes_string(var_name, ymin="visregLwr", ymax="visregUpr",fill="plt"),alpha=0.5)+
+    scale_colour_manual(values=c(Measurement=color1,LPX=color2))+
+    scale_fill_manual(values=c(Measurement=color1,LPX=color2))
+  
+  return(final1)
+}
 #include gcme database
 kevin_othervars <- read.csv("~/data/gcme/kevin_20220222/MESI_2022.csv")
 kevin_othervars <- rename(kevin_othervars, c(ambient = x_c, elevated=x_t, ambient_Sd=sd_c, elevated_Sd=sd_t,ambient_Se=se_c,elevated_Se=se_t,n_plots=rep_c,
@@ -208,12 +217,9 @@ g3 <- visreg_ggplot(fits_ppfd,"PPFD_total_a","black","red")
 g3
 
 
-g3 <- visreg_ggplot(fits_nfer,"sqrt_Nfer_kgha","black","red")
-g3
-
 #select a forest that has lower forest cover 
-#forest_cover <- read.csv("/Users/yunpeng/data/n2o_Yunke/forcing/forestcover_site.csv")
-#subset(forest_cover,forest_cover<0.8)
+forest_cover <- read.csv("/Users/yunpeng/data/n2o_Yunke/forcing/forestcover_site.csv")
+subset(forest_cover,forest_cover<0.8)
 
 #warming only effect
 df2 <- read_csv("~/data/n2o_wang_oikos/n2o_tables2.csv")
@@ -281,6 +287,12 @@ mod3b <-visreg(mod3,"dT",type="contrast")
 LPX_warming_sitemean <- na.omit(df2_all[,c("lon","lat","dT","orgc_a","logr")])
 LPX_warming_sitemean <- unique(df2_all[,c("lon","lat","z","pft")])
 
+forest_cover <- read.csv("/Users/yunpeng/data/n2o_Yunke/forcing/forestcover_site.csv")
+subset(forest_cover,forest_cover<0.8)
+
+#remove lon==91.758
+LPX_warming_sitemean <- subset(LPX_warming_sitemean,lon!=91.758)
+
 lpx_n2o <- read.csv("~/data/n2o_Yunke/forcing/LPX_annual_n2o.csv")
 
 lpx_T <- read.csv("~/data/n2o_Yunke/forcing/LPX_annual_T.csv")
@@ -344,8 +356,6 @@ g4
 
 g5 <- visreg_ggplot(fits_dT,"dT","black","red")
 g5
-
-
 
 ####not used
 df2_plotmean <- aggregate(df2,by=list(df2$ref,df2$nferinfo,df2$pft), FUN=mean, na.rm=TRUE)

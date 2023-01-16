@@ -687,8 +687,8 @@ fits_min_fapar <- dplyr::bind_rows(mutate(mod5_min_fapar$fit, plt = "Measurement
 g5 <- visreg_ggplot(fits_nfer,"sqrt_Nfer_kgha","black","red")
 g6 <- visreg_ggplot(fits_soc,"orgc_a","black","red")
 g7 <- visreg_ggplot(fits_ppfd_total,"PPFD_total_a","black","red")
-g8 <- visreg_ggplot(fits_vpd,"vpd_a","black","red")
-g9 <- visreg_ggplot(fits_Tg,"Tg_a","black","red")
+g8 <- visreg_ggplot(fits_Tg,"Tg_a","black","red")
+g9 <- visreg_ggplot(fits_vpd,"vpd_a","black","red")
 g10 <- visreg_ggplot(fits_max_fapar,"max_fapar","black","red")
 g11 <- visreg_ggplot(fits_min_fapar,"min_fapar","black","red")
 
