@@ -129,23 +129,23 @@ LPX_co2_sitemean$pft[LPX_co2_sitemean$pft=="Grassland"] <- "grassland"
 LPX_co2_sitemean$pft[LPX_co2_sitemean$pft=="Forest"] <- "forest"
 LPX_co2_sitemean$pft[LPX_co2_sitemean$pft=="Cropland"] <- "cropland"
 
-lpx_n2o <- read.csv("~/data/n2o_Yunke/forcing/LPX_annual_n2o.csv")
+lpx_n2o <- read.csv("~/data/n2o_Yunke/forcing/eCO2_LPX_annual_n2o.csv")
 
-lpx_nfer <- read.csv("~/data/n2o_Yunke/forcing/LPX_annual_nfer.csv")
+lpx_nfer <- read.csv("~/data/n2o_Yunke/forcing/eCO2_LPX_annual_nfer.csv")
 
-lpx_PPFD <- read.csv("~/data/n2o_Yunke/forcing/LPX_annual_PPFD.csv")
+lpx_PPFD <- read.csv("~/data/n2o_Yunke/forcing/eCO2_LPX_annual_PPFD.csv")
 
 LPX_all <-Reduce(function(x,y) merge(x = x, y = y, c("lon","lat","z","pft"),all.x=TRUE),
                  list(LPX_co2_sitemean,lpx_n2o,lpx_nfer,lpx_PPFD))
 
-LPX_sitemean_n2o <- LPX_all[,c(5:41)]
-LPX_sitemean_nfer <- LPX_all[,c(42:78)]
-LPX_sitemean_PPFD <- LPX_all[,c(79:115)]
+LPX_sitemean_n2o <- LPX_all[,c(5:175)]
+LPX_sitemean_nfer <- LPX_all[,c(176:346)]
+LPX_sitemean_PPFD <- LPX_all[,c(346:516)]
 
 #read co2
 #repeat co2 data by covering all sites
 co2 <- read.csv("/Users/yunpeng/data/LPX/data/global_co2_ann_1700_2020.csv")
-co2_effect <- subset(co2,year>=1980 & year <=2016)[,c("co2")]
+co2_effect <- subset(co2,year>=1850 & year <=2020)[,c("co2")]
 co2_data <- rep(co2_effect,each=30)
 co2_df <- matrix(co2_data,nrow = 30) 
 
@@ -155,7 +155,12 @@ ppfd<- data.frame(matrix(NA))
 nfer<- data.frame(matrix(NA)) 
 co2_final <- data.frame(matrix(NA)) 
 
-for (i in c(1:36)) {
+final_n2o <- log(LPX_n2o_only[,171]/LPX_n2o_only[,1])
+final_co2 <- log(co2_df[,171]/co2_df[,1])
+final_ppfd<- log(LPX_PPFD_only[,171])
+final_nfer <- sqrt(nfer_only[,171])
+
+for (i in c(1:170)) {
   LPX_n2o_only <- LPX_sitemean_n2o
   logr_n2o[c(1:nrow(LPX_n2o_only)),i] <- log(LPX_n2o_only[,i+1]/LPX_n2o_only[,i])
   
@@ -169,10 +174,10 @@ for (i in c(1:36)) {
 
 } 
 
-final_n2o <- data.frame(x=unlist(logr_n2o))
-final_ppfd <- data.frame(x=unlist(ppfd))
-final_nfer <- data.frame(x=unlist(nfer))
-final_co2 <- data.frame(x=unlist(co2_final))
+#final_n2o <- data.frame(x=unlist(logr_n2o))
+#final_ppfd <- data.frame(x=unlist(ppfd))
+#final_nfer <- data.frame(x=unlist(nfer))
+#final_co2 <- data.frame(x=unlist(co2_final))
 
 final_lpx_data <- na.omit(as.data.frame(cbind(final_n2o,final_ppfd,final_nfer,final_co2)))
 names(final_lpx_data) <- c("logr","PPFD_total_a","Nfer_a","log_co2")
@@ -293,9 +298,9 @@ subset(forest_cover,forest_cover<0.8)
 #remove lon==91.758
 LPX_warming_sitemean <- subset(LPX_warming_sitemean,lon!=91.758)
 
-lpx_n2o <- read.csv("~/data/n2o_Yunke/forcing/LPX_annual_n2o.csv")
+lpx_n2o <- read.csv("~/data/n2o_Yunke/forcing/eCO2_LPX_annual_n2o.csv")
 
-lpx_T <- read.csv("~/data/n2o_Yunke/forcing/LPX_annual_T.csv")
+lpx_T <- read.csv("~/data/n2o_Yunke/forcing/eCO2_LPX_annual_T.csv")
 
 LPX_warming_sitemean$pft[LPX_warming_sitemean$pft=="Grassland"] <- "grassland"
 LPX_warming_sitemean$pft[LPX_warming_sitemean$pft=="Forest"] <- "forest"
@@ -304,20 +309,20 @@ LPX_warming_sitemean$pft[LPX_warming_sitemean$pft=="Cropland"] <- "cropland"
 LPX_all <-Reduce(function(x,y) merge(x = x, y = y, c("lon","lat","z","pft"),all.x=TRUE),
                  list(LPX_warming_sitemean,lpx_n2o,lpx_T))
 
-LPX_sitemean_n2o <- LPX_all[,c(5:41)]
-LPX_sitemean_T <- LPX_all[,c(42:78)]
+LPX_sitemean_n2o <- LPX_all[,c(5:175)]
+LPX_sitemean_T <- LPX_all[,c(176:346)]
 
 lpx_soc <- (unique(df2_all[,c("lon","lat","orgc_a")]))
 LPX_sitemean_soc <- merge(LPX_warming_sitemean,lpx_soc,by=c("lon","lat"),all.x=TRUE)
-LPX_sitemean_soc[,c(6:41)] <- LPX_sitemean_soc[,5] #expand to multiple years, though with the same value
-LPX_sitemean_soc <- LPX_sitemean_soc[,c(5:41)]
+LPX_sitemean_soc[,c(6:176)] <- LPX_sitemean_soc[,5] #expand to multiple years, though with the same value
+LPX_sitemean_soc <- LPX_sitemean_soc[,c(5:176)]
 
 #calculate difference year-by-year (36 years in total)
 logr_n2o <- data.frame(matrix(NA)) 
 warming_final <- data.frame(matrix(NA)) 
 soc_final <- data.frame(matrix(NA)) 
 
-for (i in c(1:36)) {
+for (i in c(1:170)) {
   LPX_n2o_only <- LPX_sitemean_n2o
   logr_n2o[c(1:nrow(LPX_n2o_only)),i] <- log(LPX_n2o_only[,i+1]/LPX_n2o_only[,i])
   
