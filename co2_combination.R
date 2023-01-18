@@ -4,8 +4,111 @@ library(dplyr)
 library(lme4)
 library(MuMIn)
 library(lmerTest)
-source("/Users/yunpeng/yunkepeng/CNuptake_MS/R/stepwise.R")
+#source("/Users/yunpeng/yunkepeng/CNuptake_MS/R/stepwise.R")
 source("/Users/yunpeng/yunkepeng/CNuptake_MS/R/stepwise_lm.R")
+
+stepwise <- function(df_input,target_var){
+  #-----------------------------------------------------------------------
+  # Input:  whole dataframe and target variable
+  #assume that duration_random is the only random factor
+  #-----------------------------------------------------------------------
+  target <- target_var
+  df <- df_input
+  
+  preds <- df %>% dplyr::select(-c(target,duration_random)) %>% 
+    names()
+  
+  r_list <- c()
+  #For loop functions, include all predictor's r2 at the end
+  for (var in preds){
+    forml <- paste( 'lmer(', target, '~', var, '+(1|duration_random), data = df)')
+    fit_lin <- eval(parse(text = forml)) 
+    rsq <- r.squaredGLMM(fit_lin)[1]
+    r_list <- c(r_list,rsq)
+  }
+  
+  #convert to a dataframe, including all r2
+  All_rsquare <- data.frame (
+    preds = factor(preds,levels=preds), 
+    rsq = r_list)
+  
+  #select max r2 in all predictors
+  max(r_list)
+  
+  new_All_rsquare <- All_rsquare %>% 
+    # desc orders from largest to smallest
+    arrange(desc(rsq))
+  
+  #2. stepwise regression selection
+  
+  ## list
+  list_aic <- list()
+  list_bic <- list()
+  list_R <- list()
+  list_variable <- list()
+  
+  # predictors retained in the model firstly
+  preds_retained <- as.character(new_All_rsquare[1,1])
+  preds_candidate <- preds[-which(preds == preds_retained)] 
+  
+  
+  for (a in 1:(length(preds)-1)){
+    rsq_candidates <- c()
+    linmod_candidates <- list()
+    for (i in 1:length(preds_candidate)){
+      pred_add <- c(preds_retained, preds_candidate[i])
+      forml  <- paste( 'lmer(', target, '~', paste(pred_add, collapse = '+'), '+(1|duration_random), data = df)')
+      # create a function and make its format available to output in for loop
+      fit_lin <- eval(parse(text = forml))
+      linmod_candidates[[ i ]] <- fit_lin
+      # obtain multiple r2 at each selection, and find the best one at the end
+      rsq <- r.squaredGLMM(fit_lin)[1]
+      rsq_candidates[i] <- rsq
+    }
+    pred_max <- preds_candidate[ which.max(rsq_candidates) ]
+    # include best factors in retained factor
+    preds_retained <- c(preds_retained, pred_max)
+    list_variable[[a]] <- pred_max 
+    # include AIC, BIC, adjusted R2, R2, cross-validated R2 and RMSE at each k 
+    list_aic[[  a ]] <- AIC(eval(parse(text = paste( 'lmer(', target, '~', paste(preds_retained, collapse = '+'),  '+(1|duration_random), data = df)'))))
+    
+    list_bic[[ a ]] <- BIC(eval(parse(text = paste( 'lmer(', target, '~', paste(preds_retained, collapse = '+'),  '+(1|duration_random), data = df)'))))
+    
+    list_R[[ a ]] <- r.squaredGLMM(eval(parse(text = paste( 'lmer(', target, '~', paste(preds_retained, collapse = '+'),  '+(1|duration_random), data = df)'))))[1]
+    preds_candidate <- preds_candidate[-which(preds_candidate == pred_max)]
+  }
+  
+  
+  R_null <- r.squaredGLMM(eval(parse(text = paste( 'lmer(', target, '~', paste(preds_retained[1], collapse = '+'),  '+(1|duration_random), data = df)'))))[1]
+  AIC_null <- AIC(eval(parse(text = paste( 'lmer(', target, '~', paste(preds_retained[1], collapse = '+'),  '+(1|duration_random), data = df)'))))
+  BIC_null <- BIC(eval(parse(text = paste( 'lmer(', target, '~', paste(preds_retained[1], collapse = '+'),  '+(1|duration_random), data = df)'))))
+  variable_null <- preds_retained[1]
+  
+  R_all <- round(as.numeric(c(R_null,list_R)),2)
+  AIC_all <- round(as.numeric(c(AIC_null,list_aic)),2)
+  BIC_all <- round(as.numeric(c(BIC_null,list_bic)),2)
+  variable_all <- (as.character(c(variable_null,list_variable)))
+  
+  df1 <- as.data.frame(cbind(variable_all,R_all,AIC_all,BIC_all))
+  
+  #Adjusted-R
+  p1 <- ggplot() + 
+    geom_point(data = df1, aes(x = factor(variable_all,level = variable_all), y = R_all)) 
+  #AIC
+  p2 <- ggplot() + 
+    geom_point(data = df1, aes(x = factor(variable_all,level = variable_all), y = AIC_all)) 
+  #BIC
+  p3 <- ggplot() + 
+    geom_point(data = df1, aes(x = factor(variable_all,level = variable_all), y = BIC_all))
+  
+  output_list <- list(p1,p2,p3)
+  
+  return(output_list)
+  #-----------------------------------------------------------------------
+  # Output: four figures 
+  #-----------------------------------------------------------------------
+}
+
 library(visreg)
 visreg_ggplot <- function(obj,var_name,color1,color2){
   final1 <- ggplot() + geom_line(data = obj, aes_string(var_name, "visregFit", group="plt", color="plt"),size=2) +
@@ -40,10 +143,10 @@ unique(kevin_othervars_n2o_w[,c("lon","lat","citation")])
 
 #co2-only effect
 df1 <- read_csv("~/data/n2o_wang_oikos/n2o_tables1.csv")
-summary(df1)
+
 names(df1) <- c("ref","location","n_amb","n_elv","n_site","n2o_amb",
                 "n2o_elv","co2_amb","co2_elv","dco2","duration","pft","logr",
-                "weight","group","method","species","Nfer","other","latitude","longitude","lat","lon","comments")
+                "weight","group","method","species","Nfer","other","latitude","longitude","lat","lon","comments","days")
 
 df1$Nfer <- as.numeric(df1$Nfer)
 df1$co2_amb <- as.numeric(df1$co2_amb)
@@ -104,6 +207,30 @@ df1_all[sapply(df1_all, is.infinite)] <- NA
 df1_all$Nfer_a <- sqrt(df1_all$Nfer)
 df1_all$Nfer_a[is.na(df1_all$Nfer_a)==T] <- 0
 
+#only keep measurement higher than 1
+df1_all$days_a <- log(df1_all$days)
+df1_all$duration_random <- "years"
+df1_all$duration_random[df1_all$days<365] <- "days"
+
+#test
+df1_all_test <- na.omit(df1_all[,c("duration_random","log_co2","Nfer_a",
+                                   "min_fapar","mean_fapar","max_fapar","PPFD_total_a",
+                                   "Tg","vpd_a","ndep_a","orgc_a","logr")])
+stepwise(df1_all_test,"logr")[[1]]
+
+summary(lmer(logr~log_co2+Nfer_a+PPFD_total_a+(1|duration_random),df1_all))
+
+#duration_random nearly explained no variance
+
+#if as an explantary factor - the second factor after days_a can even not be sucessfully added!
+df1_all_test <- na.omit(df1_all[,c("days_a","log_co2","Nfer_a",
+                                   "min_fapar","mean_fapar","max_fapar","PPFD_total_a",
+                                   "Tg","vpd_a","ndep_a","orgc_a","logr")])
+stepwise_lm(df1_all_test,"logr")[[1]]
+
+summary(lm(logr~days_a,df1_all))
+summary(lm(logr~days_a+log_co2,df1_all))
+
 df1_all_test <- na.omit(df1_all[,c("log_co2","Nfer_a","min_fapar","mean_fapar","max_fapar","PPFD_total_a",
                                    "Tg","vpd_a","ndep_a","orgc_a","logr")])
 stepwise_lm(df1_all_test,"logr")[[1]]
@@ -155,11 +282,6 @@ ppfd<- data.frame(matrix(NA))
 nfer<- data.frame(matrix(NA)) 
 co2_final <- data.frame(matrix(NA)) 
 
-final_n2o <- log(LPX_n2o_only[,171]/LPX_n2o_only[,1])
-final_co2 <- log(co2_df[,171]/co2_df[,1])
-final_ppfd<- log(LPX_PPFD_only[,171])
-final_nfer <- sqrt(nfer_only[,171])
-
 for (i in c(1:170)) {
   LPX_n2o_only <- LPX_sitemean_n2o
   logr_n2o[c(1:nrow(LPX_n2o_only)),i] <- log(LPX_n2o_only[,i+1]/LPX_n2o_only[,i])
@@ -174,10 +296,10 @@ for (i in c(1:170)) {
 
 } 
 
-#final_n2o <- data.frame(x=unlist(logr_n2o))
-#final_ppfd <- data.frame(x=unlist(ppfd))
-#final_nfer <- data.frame(x=unlist(nfer))
-#final_co2 <- data.frame(x=unlist(co2_final))
+final_n2o <- data.frame(x=unlist(logr_n2o))
+final_ppfd <- data.frame(x=unlist(ppfd))
+final_nfer <- data.frame(x=unlist(nfer))
+final_co2 <- data.frame(x=unlist(co2_final))
 
 final_lpx_data <- na.omit(as.data.frame(cbind(final_n2o,final_ppfd,final_nfer,final_co2)))
 names(final_lpx_data) <- c("logr","PPFD_total_a","Nfer_a","log_co2")
@@ -231,7 +353,7 @@ df2 <- read_csv("~/data/n2o_wang_oikos/n2o_tables2.csv")
 summary(df2)
 names(df2) <- c("ref","location","n_amb","n_elv","n_site","n2o_amb",
                 "n2o_elv","dT","duration","pft","logr",
-                "weight","group","species","Nfer","other","latitude","longitude","lat","lon","comments")
+                "weight","group","species","Nfer","other","latitude","longitude","lat","lon","comments","days")
 
 df2$Nfer <- as.numeric(df2$Nfer)
 
@@ -275,14 +397,32 @@ df2_all[sapply(df2_all, is.infinite)] <- NA
 df2_all$Nfer_a <- sqrt(df2_all$Nfer)
 df2_all$Nfer_a[is.na(df2_all$Nfer_a)==T] <- 0
 
-df2_all_test <- na.omit(df2_all[,c("dT","Nfer_a","min_fapar","mean_fapar","max_fapar","PPFD_total_a",
+df2_all$days_a <- log(df2_all$days)
+df2_all$duration_random <- "years"
+df2_all$duration_random[df2_all$days<365] <- "days"
+
+#test -random factor - nearly no variance
+df2_all_test <- na.omit(df2_all[,c("duration_random","dT","Nfer_a","min_fapar","mean_fapar","max_fapar","PPFD_total_a",
                                    "vpd_a","ndep_a","orgc_a","logr")])
 
-length(unique(df2_all_test$vpd_a))
+stepwise(df2_all_test,"logr")[[1]]
+summary(lmer(logr~orgc_a+dT+(1|duration_random),df2_all_test))
+
+#test - fixed factor
+df2_all_test <- na.omit(df2_all[,c("days_a","dT","Nfer_a","min_fapar","mean_fapar","max_fapar","PPFD_total_a",
+                                   "vpd_a","ndep_a","orgc_a","logr")])
 
 stepwise_lm(df2_all_test,"logr")[[1]]
 stepwise_lm(df2_all_test,"logr")[[2]]
+AIC(lm(logr~orgc_a+dT+days_a,df2_all))
+AIC(lm(logr~orgc_a+dT,df2_all))
+#even worse
 
+#finally, still removing days
+df2_all_test <- na.omit(df2_all[,c("dT","Nfer_a","min_fapar","mean_fapar","max_fapar","PPFD_total_a",
+                                   "vpd_a","ndep_a","orgc_a","logr")])
+
+stepwise_lm(df2_all_test,"logr")[[1]]
 mod3 <- (lm(logr~orgc_a+dT,df2_all))
 summary(mod3)
 mod3a <- visreg(mod3,"orgc_a",type="contrast")

@@ -423,13 +423,13 @@ LPX_forest_sitemean <- unique(output_df_forest[,c("lon","lat")])
 dim(LPX_forest_sitemean)
 
 lpx_forest_n2o <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_n2o.csv"),pft=="forest")
-lpx_forest_n2o <- (select(lpx_forest_n2o, -c(z,pft)) )
+lpx_forest_n2o <- (dplyr::select(lpx_forest_n2o, -c(z,pft)) )
 
 lpx_forest_moisture <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_moisture.csv"),pft=="forest")
-lpx_forest_moisture <- (select(lpx_forest_moisture, -c(z,pft)) )
+lpx_forest_moisture <- (dplyr::select(lpx_forest_moisture, -c(z,pft)) )
 
 lpx_forest_temperature <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_T.csv"),pft=="forest")
-lpx_forest_temperature <- (select(lpx_forest_temperature, -c(z,pft)) )
+lpx_forest_temperature <- (dplyr::select(lpx_forest_temperature, -c(z,pft)) )
 
 LPX_forest_sitemean_n2o <- merge(LPX_forest_sitemean,lpx_forest_n2o,by=c("lon","lat"),all.x=TRUE)
 LPX_forest_sitemean_moisture <- merge(LPX_forest_sitemean,lpx_forest_moisture,by=c("lon","lat"),all.x=TRUE)
@@ -511,13 +511,13 @@ LPX_grassland_sitemean <- unique(output_df_grassland[,c("lon","lat")])
 dim(LPX_grassland_sitemean)
 
 lpx_grassland_n2o <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_n2o.csv"),pft=="grassland")
-lpx_grassland_n2o <- (select(lpx_grassland_n2o, -c(z,pft)) )
+lpx_grassland_n2o <- (dplyr::select(lpx_grassland_n2o, -c(z,pft)) )
 
 lpx_grassland_nfer <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_nfer.csv"),pft=="grassland")
-lpx_grassland_nfer <- (select(lpx_grassland_nfer, -c(z,pft)) )
+lpx_grassland_nfer <- (dplyr::select(lpx_grassland_nfer, -c(z,pft)) )
 
 lpx_grassland_minfapar <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_minfapar.csv"),pft=="grassland")
-lpx_grassland_minfapar <- (select(lpx_grassland_minfapar, -c(z,pft)) )
+lpx_grassland_minfapar <- (dplyr::select(lpx_grassland_minfapar, -c(z,pft)) )
 
 LPX_grassland_sitemean_n2o <- merge(LPX_grassland_sitemean,lpx_grassland_n2o,by=c("lon","lat"),all.x=TRUE)
 LPX_grassland_sitemean_nfer <- merge(LPX_grassland_sitemean,lpx_grassland_nfer,by=c("lon","lat"),all.x=TRUE)
@@ -601,25 +601,25 @@ LPX_cropland_sitemean <- unique(output_df_cropland[,c("lon","lat")])
 dim(LPX_cropland_sitemean)
 
 lpx_cropland_n2o <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_n2o.csv"),pft=="cropland")
-lpx_cropland_n2o <- (select(lpx_cropland_n2o, -c(z,pft)) )
+lpx_cropland_n2o <- (dplyr::select(lpx_cropland_n2o, -c(z,pft)) )
 
 lpx_cropland_nfer <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_nfer.csv"),pft=="cropland")
-lpx_cropland_nfer <- (select(lpx_cropland_nfer, -c(z,pft)) )
+lpx_cropland_nfer <- (dplyr::select(lpx_cropland_nfer, -c(z,pft)) )
 
 lpx_cropland_vpd <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_vpd.csv"),pft=="cropland")
-lpx_cropland_vpd <- (select(lpx_cropland_vpd, -c(z,pft)) )
+lpx_cropland_vpd <- (dplyr::select(lpx_cropland_vpd, -c(z,pft)) )
 
 lpx_cropland_temperature <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_T.csv"),pft=="cropland")
-lpx_cropland_temperature <- (select(lpx_cropland_temperature, -c(z,pft)) )
+lpx_cropland_temperature <- (dplyr::select(lpx_cropland_temperature, -c(z,pft)) )
 
 lpx_cropland_PPFD <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_PPFD.csv"),pft=="cropland")
-lpx_cropland_PPFD <- (select(lpx_cropland_PPFD, -c(z,pft)) )
+lpx_cropland_PPFD <- (dplyr::select(lpx_cropland_PPFD, -c(z,pft)) )
 
 lpx_cropland_maxfapar <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_maxfapar.csv"),pft=="cropland")
-lpx_cropland_maxfapar <- (select(lpx_cropland_maxfapar, -c(z,pft)) )
+lpx_cropland_maxfapar <- (dplyr::select(lpx_cropland_maxfapar, -c(z,pft)) )
 
 lpx_cropland_minfapar <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_minfapar.csv"),pft=="cropland")
-lpx_cropland_minfapar <- (select(lpx_cropland_minfapar, -c(z,pft)) )
+lpx_cropland_minfapar <- (dplyr::select(lpx_cropland_minfapar, -c(z,pft)) )
 
 LPX_cropland_sitemean_n2o <- merge(LPX_cropland_sitemean,lpx_cropland_n2o,by=c("lon","lat"),all.x=TRUE)
 LPX_cropland_sitemean_nfer <- merge(LPX_cropland_sitemean,lpx_cropland_nfer,by=c("lon","lat"),all.x=TRUE)
