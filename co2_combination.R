@@ -169,6 +169,9 @@ df1$logr[df1$logr=="-Inf"] <- NA
 df1$log_dn2o[df1$log_dn2o=="-Inf"] <- NA
 df1$log_dn2o[df1$log_dn2o=="-Inf"] <- NA
 
+#check central value of ambient
+summary(df1$co2_amb) #mean or median is 380ppm
+
 #now, start coordinates conversion
 #add fapar3g from 1/12 resolution (monthly max and mean)
 fapar3g_df_zhu <- read.csv("~/data/n2o_Yunke/forcing/co2_siteinfo_measurementyear_fapar3g_zhu.csv")
@@ -211,6 +214,9 @@ df1_all$Nfer_a[is.na(df1_all$Nfer_a)==T] <- 0
 df1_all$days_a <- log(df1_all$days)
 df1_all$duration_random <- "years"
 df1_all$duration_random[df1_all$days<365] <- "days"
+
+hist(df1_all$dco2)
+
 
 #test
 df1_all_test <- na.omit(df1_all[,c("duration_random","log_co2","Nfer_a",
@@ -372,6 +378,8 @@ df2$nferinfo[df2$Nfer>0]<- "fertilized"
 #not found in paper!!! - In Fig.6 it seems that at AS species was decreased by -15%.
 #shall we remove them? 
 df2 <- subset(df2,logr!=min(df2$logr,na.rm=T))
+
+hist(df2$dT)
 
 #merge with both
 df2_a <- merge(df2,fapar3g_df_zhu2,by=c("lon","lat"),all.x=TRUE)

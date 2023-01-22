@@ -156,6 +156,7 @@ forest_moisture <- data.frame(matrix(NA))
 grassland_moisture <- data.frame(matrix(NA)) 
 cropland_moisture <- data.frame(matrix(NA)) 
 
+#below divided by 100 to unitless factor because depth = 0.1m, then 1000kg water = 1m3 water
 for (i in c(1:37)) {
   
   forest_moisture[1:nrow(forest),i] <- rowMeans(empty_data1[1:nrow(forest),c((i*12-11):(i*12))],na.rm=T)/100 #convert to unitless

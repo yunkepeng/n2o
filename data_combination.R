@@ -33,6 +33,8 @@ library(visreg)
 library(readr)
 library(matrixStats)
 library(car)
+devtools::load_all("/Users/yunpeng/yunkepeng/latest_packages/rbeni/") 
+
 ### Liao et al. 2020 GCB: https://onlinelibrary.wiley.com/doi/full/10.1111/gcb.16365
 #1a: field-based n2o
 liao_field <- read.csv("~/data/n2o_liao/org/Global_change_biology_GCB-22-1572_primary_field_data.csv")
@@ -40,15 +42,34 @@ liao_field2<- liao_field[,c("Ref","Study.area","Year","Latitude","Longitude","N.
                             "Altitude..m.","N2O.fluxes..μg.N.m.2.h.1.","Total.N..g.kg.1.","NO3....mg.kg.1.",
                             "NH4...mg.kg.1.","pH","SOC..g.kg.1.","Ecosystem.types","Soil.moisture....",
                             "AOA..copy.numbers.g.1.dry.soil.","AOB..copy.numbers.g.1.dry.soil.","nirS...copy.numbers.g.1.dry.soil.",
-                            "nirK...copy.numbers.g.1.dry.soil.","nosZ...copy.numbers.g.1.dry.soil.")]
+                            "nirK...copy.numbers.g.1.dry.soil.","nosZ...copy.numbers.g.1.dry.soil.",
+                            "Bulk.density..g.cm.3.")]
 names(liao_field2) <- c("ref","site","year","lat","lon","Nfer_kgha",
                         "z","n2o_ugm2h","totaln_gkg","no3_mgkg","nh4_mgkg","pH","soc_gkg","pft","obs_moisture",
-                        "AOA","AOB","nirS","nirK","nosZ")
+                        "AOA","AOB","nirS","nirK","nosZ","bulk_density")
 #set all value = -9999 to NA
 liao_field2[liao_field2 == -9999] <- NA
 
 summary(liao_field2)
+#three papers showing wrong data - the value is g/g in original paper and should be converted to % by *100, but Liao et al. failed to do that.
+#here we *100 and then multiply with soil bulk density
+liao_field2$bulk_density[liao_field2$ref=="Biological invasion alters regional nitrogen-oxide emissions from tropical rainforests"] <- 1
+  
+liao_field2$obs_moisture[liao_field2$ref=="Biological invasion alters regional nitrogen-oxide emissions from tropical rainforests"]<- 
+  liao_field2$obs_moisture[liao_field2$ref=="Biological invasion alters regional nitrogen-oxide emissions from tropical rainforests"]*100*liao_field2$bulk_density[liao_field2$ref=="Biological invasion alters regional nitrogen-oxide emissions from tropical rainforests"]
+
+liao_field2$obs_moisture[liao_field2$ref=="Nitrous oxide flux dynamics of grassland undergoing afforestation"]<-
+  liao_field2$obs_moisture[liao_field2$ref=="Nitrous oxide flux dynamics of grassland undergoing afforestation"]*100*liao_field2$bulk_density[liao_field2$ref=="Nitrous oxide flux dynamics of grassland undergoing afforestation"]
+
+liao_field2$obs_moisture[liao_field2$ref=="Relationship between N2O and NO emission potentials and soil properties in Japanese forest soils"] <- 
+  liao_field2$obs_moisture[liao_field2$ref=="Relationship between N2O and NO emission potentials and soil properties in Japanese forest soils"]*100*liao_field2$bulk_density[liao_field2$ref=="Relationship between N2O and NO emission potentials and soil properties in Japanese forest soils"]
+
+#for more details see /Users/yunpeng/data/n2o_liao/org/moisture_check.xlsx
+#I think now it should all be volumetric SWC (a few are converted from mass to volume based SWC - if they lacked bulk density they just converted by assuming bulk density as 1)
+
 liao_field2$obs_moisture<- liao_field2$obs_moisture/100
+summary(liao_field2$obs_moisture)
+
 liao_field2$method <- "field"
 #correct start_yr
 unique(liao_field2$year)
@@ -408,10 +429,11 @@ test1 <- (na.omit(forest2_field[,c("site_a","n2o_a","orgc_a","CNrt_a","ndep_a",
                                    "obs_moisture","Tg_a",
                                    "PPFD_total_a","PPFD_a",
                                    "min_fapar","max_fapar","mean_fapar","max_min_fapar","max_mean_fapar")]))
-dim(test1)
+#dim(test1)
 stepwise(test1,"n2o_a")[[1]]
 stepwise(test1,"n2o_a")[[2]]
-
+#temperature and moisture were selected first - then significant
+#then no matter how select other factors - these are wrong
 mod1 <- (lmer(n2o_a~Tg_a+obs_moisture+(1|site_a),data=forest2_field))
 summary(mod1)
 r.squaredGLMM(mod1)
@@ -448,6 +470,16 @@ names(final_forest_lpx) <- c("n2o_a","obs_moisture","Tg_a")
 mod2 <- (lm(n2o_a~Tg_a+obs_moisture,final_forest_lpx))
 summary(mod2)
 
+mod1 <- (lmer(n2o_a~Tg_a+obs_moisture+(1|site_a),data=forest2_field))
+summary(mod1)
+r.squaredGLMM(mod1)
+
+summary(mod1)
+summary(mod2)
+
+summary(forest2_field$obs_moisture)
+summary(final_forest_lpx$obs_moisture)
+
 mod1_moisture <- visreg(mod1,"obs_moisture",type="contrast");mod1_Tg <-visreg(mod1,"Tg_a",type="contrast")
 mod2_moisture <- visreg(mod2,"obs_moisture",type="contrast");mod2_Tg <- visreg(mod2,"Tg_a",type="contrast")
 
@@ -469,6 +501,21 @@ g1 <- visreg_ggplot(fits_tg,"Tg_a","black","red")
 g1
 g2 <- visreg_ggplot(fits_moisture,"obs_moisture","black","red")
 g2
+
+#check comparasion
+dim(lpx_forest_n2o)
+predict_forest_n2o <- as.data.frame(cbind(lpx_forest_n2o[c(1:2)],rowMeans(lpx_forest_n2o[,c(3:39)],na.rm=T)))
+names(predict_forest_n2o) <-c("lon","lat","lpx_n2o")
+forest2_field
+forest_compare <- merge(forest2_field,predict_forest_n2o,by=c("lon","lat"),all.x=TRUE)
+forest_compare <- na.omit(forest_compare[,c("lon","lat","n2o_a","lpx_n2o")])
+names(forest_compare) <- c("lon","lat","obs_n2o","pred_n2o")
+forest_compare_sitemean <- as.data.frame(forest_compare %>% group_by(lon,lat)  %>%
+                                  summarise(obs_n2o = mean(obs_n2o),
+                                            pred_n2o = mean(pred_n2o)))
+analyse_modobs2(forest_compare_sitemean,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
+analyse_modobs2(forest_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
+
 
 #grassland - check rep
 unique(all_n2o_df$pft)
@@ -551,6 +598,24 @@ g3
 
 g4 <- visreg_ggplot(fits_minfapar,"min_fapar","black","red")
 g4
+
+summary(mod3)
+summary(mod4)
+
+#check comparasion
+dim(lpx_grassland_n2o)
+predict_grassland_n2o <- as.data.frame(cbind(lpx_grassland_n2o[c(1:2)],rowMeans(lpx_grassland_n2o[,c(3:39)],na.rm=T)))
+names(predict_grassland_n2o) <-c("lon","lat","lpx_n2o")
+grassland2_field
+grassland_compare <- merge(grassland2_field,predict_grassland_n2o,by=c("lon","lat"),all.x=TRUE)
+grassland_compare <- na.omit(grassland_compare[,c("lon","lat","n2o_a","lpx_n2o")])
+names(grassland_compare) <- c("lon","lat","obs_n2o","pred_n2o")
+grassland_compare_sitemean <- as.data.frame(grassland_compare %>% group_by(lon,lat)  %>%
+                                  summarise(obs_n2o = mean(obs_n2o),
+                                            pred_n2o = mean(pred_n2o)))
+
+analyse_modobs2(grassland_compare_sitemean,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
+analyse_modobs2(grassland_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
 
 #finally cropland
 cropland <- subset(all_n2o_df,pft=="cropland"|pft=="plantation"|pft=="fallow"|pft=="bare")
@@ -700,17 +765,42 @@ g9
 g10
 g11
 
+summary(mod5)
+summary(mod6)
+
+#check comparasion
+dim(lpx_cropland_n2o)
+predict_cropland_n2o <- as.data.frame(cbind(lpx_cropland_n2o[c(1:2)],rowMeans(lpx_cropland_n2o[,c(3:39)],na.rm=T)))
+names(predict_cropland_n2o) <-c("lon","lat","lpx_n2o")
+cropland2_liao
+cropland_compare <- merge(cropland2_liao,predict_cropland_n2o,by=c("lon","lat"),all.x=TRUE)
+cropland_compare <- na.omit(cropland_compare[,c("lon","lat","n2o_a","lpx_n2o")])
+names(cropland_compare) <- c("lon","lat","obs_n2o","pred_n2o")
+cropland_compare_sitemean <- as.data.frame(cropland_compare %>% group_by(lon,lat)  %>%
+                                              summarise(obs_n2o = mean(obs_n2o),
+                                                        pred_n2o = mean(pred_n2o)))
+
+analyse_modobs2(cropland_compare_sitemean,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
+analyse_modobs2(cropland_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
+
+
 #AAA: output cropland data-frame for LPX model use
+#and check cropland, grassland and forest data
+#check if N2O lowest in forest, and highest in grassland - true
+
 output_df_forest <- na.omit(forest2_field[,c("lon","lat","z","start_yr","end_yr",
                                                 "n2o_a","Tg_a","obs_moisture")])
+summary(output_df_forest$n2o_a)
 output_df_forest <- unique(output_df_forest[,c("lon","lat","z","start_yr","end_yr")])
 
 output_df_grassland <- na.omit(grassland2_field[,c("lon","lat","z","start_yr","end_yr",
                                              "n2o_a","sqrt_Nfer_kgha","min_fapar")])
+summary(output_df_grassland$n2o_a)
 output_df_grassland <- unique(output_df_grassland[,c("lon","lat","z","start_yr","end_yr")])
 
 output_df_cropland <- na.omit(cropland2_liao[,c("lon","lat","z","start_yr","end_yr",
                                                 "sqrt_Nfer_kgha","orgc_a","n2o_a","vpd_a","Tg_a","PPFD_total_a","max_fapar","min_fapar")])
+summary(output_df_cropland$n2o_a)
 output_df_cropland <- unique(output_df_cropland[,c("lon","lat","z","start_yr","end_yr")])
 
 output_df_forest$pft <- "forest"
