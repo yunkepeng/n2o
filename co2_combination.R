@@ -215,7 +215,8 @@ df1_all$days_a <- log(df1_all$days)
 df1_all$duration_random <- "years"
 df1_all$duration_random[df1_all$days<365] <- "days"
 
-hist(df1_all$dco2)
+hist(df1_all$co2_amb)
+hist(df1_all$co2_elv)
 
 
 #test
@@ -376,7 +377,7 @@ df2$nferinfo[df2$Nfer>0]<- "fertilized"
 
 #QQQ: the one with very low logr looks confusing, (ref = Zhao et al., 2017), n2o decreased from 61440 to 1680??? While another sample of this ref looks ok. 
 #not found in paper!!! - In Fig.6 it seems that at AS species was decreased by -15%.
-#shall we remove them? 
+#remove them by contacting first author
 df2 <- subset(df2,logr!=min(df2$logr,na.rm=T))
 
 hist(df2$dT)
