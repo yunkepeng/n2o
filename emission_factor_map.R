@@ -145,6 +145,8 @@ lpx_final$EF_LPX <- lpx_final$EF_LPX*100
 plot_map3(lpx_final)  
 summary(lpx_final)
 
+plot_map3(subset(lpx_final,EF_LPX<10))
+
 summary(cui_final)
 #now, compare
 final <- as.data.frame(cbind(lpx_final$EF_LPX,cui_final$EF_Cui))

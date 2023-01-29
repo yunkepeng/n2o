@@ -134,10 +134,10 @@ cui$n2o <- cui$E/cui$Duration #E was at kg N2O-N ha-1, duration is in days
 cui$n2o <- cui$n2o*1000000000/10000/24 #convert from kg/ha/day to ug/m2/h
 summary(cui$n2o)
 cui2 <- cui[,c("Reference","Latitude","Longitude","Start_year","End_year","Fertilizers",
-               "Crop.type","Nrate","n2o","Tillage","Irrigation","Site")]
+               "Crop.type","Nrate","n2o","Tillage","Irrigation","Site","EF")]
 
 names(cui2) <- c("ref","lat","lon","start_yr","end_yr","fertilizers",
-                 "crop","Nfer_kgha","n2o_ugm2h","tillage","irrigation","site")
+                 "crop","Nfer_kgha","n2o_ugm2h","tillage","irrigation","site","EF")
 cui2$method <- "field"
 cui2$file <- "cui et al. nature food"
 cui2$pft <- "cropland"
@@ -151,11 +151,11 @@ cui_fallow$n2o <- cui_fallow$E/cui_fallow$Duration_new #E was at kg N2O-N ha-1, 
 cui_fallow$n2o <- cui_fallow$n2o*1000000000/10000/24 #convert from kg/ha/day to ug/m2/h
 summary(cui_fallow$n2o)
 cui2_fallow <- cui_fallow[,c("Reference","Latitude","Longitude","Start_year","End_year","Fertilizers",
-                             "Crop.type","Nrate","n2o","Tillage","Irrigation","Site")]
+                             "Crop.type","Nrate","n2o","Tillage","Irrigation","Site","EF")]
 cui2_fallow$Site <- paste(cui2_fallow$Site,"_fallow",sep="")
 
 names(cui2_fallow) <- c("ref","lat","lon","start_yr","end_yr","fertilizers",
-                        "crop","Nfer_kgha","n2o_ugm2h","tillage","irrigation","site")
+                        "crop","Nfer_kgha","n2o_ugm2h","tillage","irrigation","site","EF")
 
 cui2_fallow$method <- "field_fallow"
 cui2_fallow$file <- "cui et al. nature food"
@@ -503,19 +503,30 @@ g2 <- visreg_ggplot(fits_moisture,"obs_moisture","black","red")
 g2
 
 #check comparasion
-dim(lpx_forest_n2o)
-predict_forest_n2o <- as.data.frame(cbind(lpx_forest_n2o[c(1:2)],rowMeans(lpx_forest_n2o[,c(3:39)],na.rm=T)))
-names(predict_forest_n2o) <-c("lon","lat","lpx_n2o")
-forest2_field
-forest_compare <- merge(forest2_field,predict_forest_n2o,by=c("lon","lat"),all.x=TRUE)
-forest_compare <- na.omit(forest_compare[,c("lon","lat","n2o_a","lpx_n2o")])
-names(forest_compare) <- c("lon","lat","obs_n2o","pred_n2o")
-forest_compare_sitemean <- as.data.frame(forest_compare %>% group_by(lon,lat)  %>%
-                                  summarise(obs_n2o = mean(obs_n2o),
-                                            pred_n2o = mean(pred_n2o)))
-analyse_modobs2(forest_compare_sitemean,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
-analyse_modobs2(forest_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
+pred_n2o <- read.csv("~/data/n2o_Yunke/forcing/LPX_years_all_n2o.csv")
+predict_forest_n2o <- subset(pred_n2o,pft=="forest")
+names(predict_forest_n2o) <-c("lon","lat","z","start_yr","end_yr","pft","pred_n2o")
 
+pred_forest_cover <- read.csv("~/data/n2o_Yunke/forcing/forestcover_site_alln2o.csv")
+names(pred_forest_cover)
+
+forest2_field$pft <- "forest"
+
+forest_compare <- merge(forest2_field,predict_forest_n2o,
+                        by=c("lon","lat","z","start_yr","end_yr","pft"),all.x=TRUE)
+
+forest_compare2 <- merge(forest_compare,pred_forest_cover,
+                        by=c("lon","lat"),all.x=TRUE)
+#most sites have values >=0.8-> use it
+nrow(subset(forest_compare2,forest_cover>=0.8))/nrow(forest_compare2)
+forest_compare3 <-subset(forest_compare2,forest_cover>=0.8)
+forest_compare3$obs_n2o <- forest_compare3$n2o_ugm2h
+analyse_modobs2(forest_compare3,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
+
+forest_compare3$log_obs_n2o <- log(forest_compare3$obs_n2o)
+forest_compare3$log_pred_n2o <- log(forest_compare3$pred_n2o)
+#log
+analyse_modobs2(forest_compare3,"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg 
 
 #grassland - check rep
 unique(all_n2o_df$pft)
@@ -603,19 +614,21 @@ summary(mod3)
 summary(mod4)
 
 #check comparasion
-dim(lpx_grassland_n2o)
-predict_grassland_n2o <- as.data.frame(cbind(lpx_grassland_n2o[c(1:2)],rowMeans(lpx_grassland_n2o[,c(3:39)],na.rm=T)))
-names(predict_grassland_n2o) <-c("lon","lat","lpx_n2o")
-grassland2_field
-grassland_compare <- merge(grassland2_field,predict_grassland_n2o,by=c("lon","lat"),all.x=TRUE)
-grassland_compare <- na.omit(grassland_compare[,c("lon","lat","n2o_a","lpx_n2o")])
-names(grassland_compare) <- c("lon","lat","obs_n2o","pred_n2o")
-grassland_compare_sitemean <- as.data.frame(grassland_compare %>% group_by(lon,lat)  %>%
-                                  summarise(obs_n2o = mean(obs_n2o),
-                                            pred_n2o = mean(pred_n2o)))
+pred_n2o <- read.csv("~/data/n2o_Yunke/forcing/LPX_years_all_n2o.csv")
+predict_grassland_n2o <- subset(pred_n2o,pft=="grassland")
+names(predict_grassland_n2o) <-c("lon","lat","z","start_yr","end_yr","pft","pred_n2o")
+grassland2_field$pft <- "grassland"
+grassland3_compare <- merge(grassland2_field,predict_grassland_n2o,
+                        by=c("lon","lat","z","start_yr","end_yr","pft"),all.x=TRUE)
 
-analyse_modobs2(grassland_compare_sitemean,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
-analyse_modobs2(grassland_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
+summary(grassland3_compare)
+grassland3_compare$obs_n2o <- grassland3_compare$n2o_ugm2h
+analyse_modobs2(grassland3_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
+
+grassland3_compare$log_obs_n2o <- log(grassland3_compare$obs_n2o)
+grassland3_compare$log_pred_n2o <- log(grassland3_compare$pred_n2o)
+#log
+analyse_modobs2(grassland3_compare,"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg 
 
 #finally cropland
 cropland <- subset(all_n2o_df,pft=="cropland"|pft=="plantation"|pft=="fallow"|pft=="bare")
@@ -769,19 +782,42 @@ summary(mod5)
 summary(mod6)
 
 #check comparasion
-dim(lpx_cropland_n2o)
-predict_cropland_n2o <- as.data.frame(cbind(lpx_cropland_n2o[c(1:2)],rowMeans(lpx_cropland_n2o[,c(3:39)],na.rm=T)))
-names(predict_cropland_n2o) <-c("lon","lat","lpx_n2o")
-cropland2_liao
-cropland_compare <- merge(cropland2_liao,predict_cropland_n2o,by=c("lon","lat"),all.x=TRUE)
-cropland_compare <- na.omit(cropland_compare[,c("lon","lat","n2o_a","lpx_n2o")])
-names(cropland_compare) <- c("lon","lat","obs_n2o","pred_n2o")
-cropland_compare_sitemean <- as.data.frame(cropland_compare %>% group_by(lon,lat)  %>%
-                                              summarise(obs_n2o = mean(obs_n2o),
-                                                        pred_n2o = mean(pred_n2o)))
+pred_n2o <- read.csv("~/data/n2o_Yunke/forcing/LPX_years_all_n2o.csv")
+predict_cropland_n2o <- subset(pred_n2o,pft=="cropland")
+names(predict_cropland_n2o) <-c("lon","lat","z","start_yr","end_yr","pft","pred_n2o")
+cropland2_liao$pft <- "cropland"
+cropland3_compare <- merge(cropland2_liao,predict_cropland_n2o,
+                            by=c("lon","lat","z","start_yr","end_yr","pft"),all.x=TRUE)
 
-analyse_modobs2(cropland_compare_sitemean,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
-analyse_modobs2(cropland_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
+summary(cropland3_compare)
+cropland3_compare$obs_n2o <- cropland3_compare$n2o_ugm2h
+analyse_modobs2(cropland3_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
+
+cropland3_compare$log_obs_n2o <- log(cropland3_compare$obs_n2o)
+cropland3_compare$log_pred_n2o <- log(cropland3_compare$pred_n2o)
+#log
+analyse_modobs2(cropland3_compare,"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg 
+
+#emission factor
+cropland_EF <- subset(cropland,is.na(EF)==FALSE)
+cropland_EF$pft <- "cropland"
+
+pred_EF <- read.csv("~/data/n2o_Yunke/forcing/LPX_years_cropland_Cui.csv")
+#convert values from ug/m2/h to kg/ha/yr -> so consistent with nfer
+pred_EF$EF <- (pred_EF$n2o_sh1-pred_EF$n2o_sh3)*(8760/100000)/pred_EF$nfer
+
+pred_EF[sapply(pred_EF, is.nan)] <- NA
+pred_EF[sapply(pred_EF, is.infinite)] <- NA
+summary(pred_EF$EF)
+hist(pred_EF$EF)
+pred_EF <- pred_EF[,c("lon","lat","z","start_yr","end_yr","pft","EF")]
+names(pred_EF) <- c("lon","lat","z","start_yr","end_yr","pft","pred_EF")
+cropland_EF_compare <- merge(cropland_EF,pred_EF,
+                           by=c("lon","lat","z","start_yr","end_yr","pft"),all.x=TRUE)
+
+summary(cropland_EF_compare)
+cropland_EF_compare$obs_EF <- cropland_EF_compare$EF/100
+analyse_modobs2(cropland_EF_compare,"pred_EF","obs_EF", type = "points",relative=TRUE)$gg 
 
 
 #AAA: output cropland data-frame for LPX model use
@@ -812,3 +848,30 @@ output_lpx <- as.data.frame(rbind(output_df_forest,output_df_grassland,output_df
 #csvfile <- paste("~/data/n2o_Yunke/forcing/lpx_sites_field.csv")
 #write_csv(output_lpx, path = csvfile)
 
+
+#output all forest, grassland and cropland N2O (without predictors consitrained)
+output_df_forest <- unique(forest2_field[,c("lon","lat","z","start_yr","end_yr")])
+output_df_grassland <- unique(grassland2_field[,c("lon","lat","z","start_yr","end_yr")])
+output_df_cropland <- unique(cropland2_liao[,c("lon","lat","z","start_yr","end_yr")])
+dim(output_df_forest)
+dim(output_df_grassland)
+dim(output_df_cropland)
+output_df_forest$pft <- "forest"
+output_df_grassland$pft <- "grassland"
+output_df_cropland$pft <- "cropland"
+
+output_lpx <- as.data.frame(rbind(output_df_forest,output_df_grassland,output_df_cropland))
+
+#csvfile <- paste("~/data/n2o_Yunke/forcing/lpx_sites_field_all_n2o.csv")
+#write_csv(output_lpx, path = csvfile)
+
+#get cropland LPX database - all from "cui et al. nature food"
+cropland_EF <- subset(cropland,is.na(EF)==FALSE)
+dim(cropland_EF)
+unique(cropland_EF$file)
+EF_output <- unique(cropland_EF[,c("lon","lat","z","start_yr","end_yr")])
+EF_output$pft <- "cropland"
+summary(EF_output)
+dim(EF_output)
+#csvfile <- paste("~/data/n2o_Yunke/forcing/lpx_sites_EF_Cui.csv")
+#write_csv(EF_output, path = csvfile)
