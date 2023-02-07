@@ -115,8 +115,8 @@ lpx_n2o <- rowMeans(as.data.frame(cbind(cropland1-cropland1a,
 2020-2000+1
 171-21+1
 #band =151 is the year 2000
-cropland1a <- raster::as.data.frame(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",band=151,varname="NH4CROP"), xy = TRUE)[,3]
-cropland2a <- raster::as.data.frame(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",band=151,varname="NO3CROP"), xy = TRUE)[,3]
+cropland1a <- raster::as.data.frame(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021_per_landuse.nc",band=151,varname="NH4CROP"), xy = TRUE)[,3]
+cropland2a <- raster::as.data.frame(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021_per_landuse.nc",band=151,varname="NO3CROP"), xy = TRUE)[,3]
 summary(cropland1a)
 summary(cropland2a)
 

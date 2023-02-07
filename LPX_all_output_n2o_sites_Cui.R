@@ -26,10 +26,10 @@ for (i in 1:nrow(cropland)) {
   
   empty_data <- NA
   for (a in start_year:end_year) {
-    a1 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",
+    a1 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021_per_landuse.nc",
                                   band=a,varname="NH4CROP"), site_data, sp = TRUE)%>%
              as_tibble())[,1]
-    a2 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",
+    a2 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021_per_landuse.nc",
                                   band=a,varname="NO3CROP"), site_data, sp = TRUE)%>%
              as_tibble())[,1]
     a_all <- (a1 + a2)*10  #convert unit from g/m2 to kg/ha

@@ -94,8 +94,8 @@ for (i in 1:nrow(forest)) {
   forest[i,c("n2o")] <- colMeans(empty_data,na.rm=T)*1000000000*3600 #convert from kg_m2_s to ug_m2_h
 }
   
-#csvfile <- paste("~/data/n2o_Yunke/forcing/LPX_years_forest_n2o.csv")
-#write_csv(forest, path = csvfile)
+csvfile <- paste("~/data/n2o_Yunke/forcing/LPX_years_forest_n2o.csv")
+write_csv(forest, path = csvfile)
 
 for (i in 1:nrow(cropland)) {
   print(i)
@@ -118,8 +118,8 @@ for (i in 1:nrow(cropland)) {
   cropland[i,c("n2o")] <- colMeans(empty_data,na.rm=T)*1000000000*3600 #convert from kg_m2_s to ug_m2_h
 }
 
-#csvfile <- paste("~/data/n2o_Yunke/forcing/LPX_years_cropland_n2o.csv")
-#write_csv(cropland, path = csvfile)
+csvfile <- paste("~/data/n2o_Yunke/forcing/LPX_years_cropland_n2o.csv")
+write_csv(cropland, path = csvfile)
 
 for (i in 1:nrow(grassland)) {
   print(i)
@@ -142,8 +142,8 @@ for (i in 1:nrow(grassland)) {
   grassland[i,c("n2o")] <- colMeans(empty_data,na.rm=T)*1000000000*3600 #convert from kg_m2_s to ug_m2_h
 }
 
-#csvfile <- paste("~/data/n2o_Yunke/forcing/LPX_years_grassland_n2o.csv")
-#write_csv(grassland, path = csvfile)
+csvfile <- paste("~/data/n2o_Yunke/forcing/LPX_years_grassland_n2o.csv")
+write_csv(grassland, path = csvfile)
 
 final <- as.data.frame(rbind(forest,grassland,cropland))
 csvfile <- paste("~/data/n2o_Yunke/forcing/LPX_years_all_n2o.csv")

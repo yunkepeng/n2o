@@ -33,7 +33,7 @@ library(visreg)
 library(readr)
 library(matrixStats)
 library(car)
-devtools::load_all("/Users/yunpeng/yunkepeng/latest_packages/rbeni/") 
+devtools::load_all("/Users/yunpeng/yunkepeng/latest_packages/rbeni/")
 
 ### Liao et al. 2020 GCB: https://onlinelibrary.wiley.com/doi/full/10.1111/gcb.16365
 #1a: field-based n2o
@@ -54,14 +54,14 @@ summary(liao_field2)
 #three papers showing wrong data - the value is g/g in original paper and should be converted to % by *100, but Liao et al. failed to do that.
 #here we *100 and then multiply with soil bulk density
 liao_field2$bulk_density[liao_field2$ref=="Biological invasion alters regional nitrogen-oxide emissions from tropical rainforests"] <- 1
-  
-liao_field2$obs_moisture[liao_field2$ref=="Biological invasion alters regional nitrogen-oxide emissions from tropical rainforests"]<- 
+
+liao_field2$obs_moisture[liao_field2$ref=="Biological invasion alters regional nitrogen-oxide emissions from tropical rainforests"]<-
   liao_field2$obs_moisture[liao_field2$ref=="Biological invasion alters regional nitrogen-oxide emissions from tropical rainforests"]*100*liao_field2$bulk_density[liao_field2$ref=="Biological invasion alters regional nitrogen-oxide emissions from tropical rainforests"]
 
 liao_field2$obs_moisture[liao_field2$ref=="Nitrous oxide flux dynamics of grassland undergoing afforestation"]<-
   liao_field2$obs_moisture[liao_field2$ref=="Nitrous oxide flux dynamics of grassland undergoing afforestation"]*100*liao_field2$bulk_density[liao_field2$ref=="Nitrous oxide flux dynamics of grassland undergoing afforestation"]
 
-liao_field2$obs_moisture[liao_field2$ref=="Relationship between N2O and NO emission potentials and soil properties in Japanese forest soils"] <- 
+liao_field2$obs_moisture[liao_field2$ref=="Relationship between N2O and NO emission potentials and soil properties in Japanese forest soils"] <-
   liao_field2$obs_moisture[liao_field2$ref=="Relationship between N2O and NO emission potentials and soil properties in Japanese forest soils"]*100*liao_field2$bulk_density[liao_field2$ref=="Relationship between N2O and NO emission potentials and soil properties in Japanese forest soils"]
 
 #for more details see /Users/yunpeng/data/n2o_liao/org/moisture_check.xlsx
@@ -356,7 +356,7 @@ all_n2o_df <- merge(all_n2o_df,fapar3g_df_zhu2,
                     by=c("lon","lat","z","start_yr","end_yr"),all.x=TRUE)
 summary(all_n2o_df)
 
-#values are all consistent 
+#values are all consistent
 all_n2o_df$max_mean_fapar <- all_n2o_df$max_fapar-all_n2o_df$mean_fapar
 all_n2o_df$max_min_fapar <- all_n2o_df$max_fapar-all_n2o_df$min_fapar
 all_n2o_df$max_mean_gfapar <- all_n2o_df$max_gfapar-all_n2o_df$mean_gfapar
@@ -486,10 +486,10 @@ mod2_moisture <- visreg(mod2,"obs_moisture",type="contrast");mod2_Tg <- visreg(m
 fits_moisture <- dplyr::bind_rows(mutate(mod1_moisture$fit, plt = "Measurement"),mutate(mod2_moisture$fit, plt = "LPX"))
 fits_tg <- dplyr::bind_rows(mutate(mod1_Tg$fit, plt = "Measurement"),mutate(mod2_Tg$fit, plt = "LPX"))
 
-###converted to lm 
+###converted to lm
 visreg_ggplot <- function(obj,var_name,color1,color2){
   final1 <- ggplot() + geom_line(data = obj, aes_string(var_name, "visregFit", group="plt", color="plt"),size=2) +
-    theme_classic()+theme(text = element_text(size=20),legend.position="none")+ 
+    theme_classic()+theme(text = element_text(size=20),legend.position="none")+
     geom_ribbon(data = obj,aes_string(var_name, ymin="visregLwr", ymax="visregUpr",fill="plt"),alpha=0.5)+
     scale_colour_manual(values=c(Measurement=color1,LPX=color2))+
     scale_fill_manual(values=c(Measurement=color1,LPX=color2))
@@ -521,12 +521,15 @@ forest_compare2 <- merge(forest_compare,pred_forest_cover,
 nrow(subset(forest_compare2,forest_cover>=0.8))/nrow(forest_compare2)
 forest_compare3 <-subset(forest_compare2,forest_cover>=0.8)
 forest_compare3$obs_n2o <- forest_compare3$n2o_ugm2h
-analyse_modobs2(forest_compare3,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
+analyse_modobs2(forest_compare3,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg+
+  theme(axis.text=element_text(size=20),axis.title=element_text(size=20), plot.subtitle=element_text(size=20))
 
 forest_compare3$log_obs_n2o <- log(forest_compare3$obs_n2o)
 forest_compare3$log_pred_n2o <- log(forest_compare3$pred_n2o)
 #log
-analyse_modobs2(forest_compare3,"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg 
+analyse_modobs2(forest_compare3,"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg +
+  theme(axis.text=element_text(size=20),axis.title=element_text(size=20), plot.subtitle=element_text(size=20))
+
 
 #grassland - check rep
 unique(all_n2o_df$pft)
@@ -574,7 +577,7 @@ lpx_grassland_n2o <- (dplyr::select(lpx_grassland_n2o, -c(z,pft)) )
 lpx_grassland_nfer <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_nfer.csv"),pft=="grassland")
 lpx_grassland_nfer <- (dplyr::select(lpx_grassland_nfer, -c(z,pft)) )
 
-lpx_grassland_minfapar <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_minfapar.csv"),pft=="grassland")
+lpx_grassland_minfapar <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_actual_minfapar.csv"),pft=="grassland")
 lpx_grassland_minfapar <- (dplyr::select(lpx_grassland_minfapar, -c(z,pft)) )
 
 LPX_grassland_sitemean_n2o <- merge(LPX_grassland_sitemean,lpx_grassland_n2o,by=c("lon","lat"),all.x=TRUE)
@@ -602,7 +605,7 @@ mod4_nfer <- visreg(mod4,"sqrt_Nfer_kgha",type="contrast");mod4_minfapar <- visr
 fits_nfer <- dplyr::bind_rows(mutate(mod3_nfer$fit, plt = "Measurement"),mutate(mod4_nfer$fit, plt = "LPX"))
 fits_minfapar <- dplyr::bind_rows(mutate(mod3_minfapar$fit, plt = "Measurement"),mutate(mod4_minfapar$fit, plt = "LPX"))
 
-###converted to lm 
+###converted to lm
 
 g3 <- visreg_ggplot(fits_nfer,"sqrt_Nfer_kgha","black","red")
 g3
@@ -623,12 +626,15 @@ grassland3_compare <- merge(grassland2_field,predict_grassland_n2o,
 
 summary(grassland3_compare)
 grassland3_compare$obs_n2o <- grassland3_compare$n2o_ugm2h
-analyse_modobs2(grassland3_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
+analyse_modobs2(grassland3_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg +
+  theme(axis.text=element_text(size=20),axis.title=element_text(size=20), plot.subtitle=element_text(size=20))
+
 
 grassland3_compare$log_obs_n2o <- log(grassland3_compare$obs_n2o)
 grassland3_compare$log_pred_n2o <- log(grassland3_compare$pred_n2o)
 #log
-analyse_modobs2(grassland3_compare,"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg 
+analyse_modobs2(grassland3_compare,"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg +
+  theme(axis.text=element_text(size=20),axis.title=element_text(size=20), plot.subtitle=element_text(size=20))
 
 #finally cropland
 cropland <- subset(all_n2o_df,pft=="cropland"|pft=="plantation"|pft=="fallow"|pft=="bare")
@@ -665,7 +671,7 @@ dim(test3)
 stepwise(test3,"n2o_a")[[1]]
 stepwise(test3,"n2o_a")[[2]]
 
-#directly using existing models/ comparasion 
+#directly using existing models/ comparasion
 mod5 <- ((lmer(n2o_a~orgc_a+sqrt_Nfer_kgha+vpd_a+Tg_a+PPFD_total_a+max_fapar+min_fapar+(1|site_a),data=cropland2_liao)))
 summary(mod5)
 AIC(mod5)
@@ -693,10 +699,10 @@ lpx_cropland_temperature <- (dplyr::select(lpx_cropland_temperature, -c(z,pft)) 
 lpx_cropland_PPFD <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_PPFD.csv"),pft=="cropland")
 lpx_cropland_PPFD <- (dplyr::select(lpx_cropland_PPFD, -c(z,pft)) )
 
-lpx_cropland_maxfapar <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_maxfapar.csv"),pft=="cropland")
+lpx_cropland_maxfapar <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_actual_maxfapar.csv"),pft=="cropland")
 lpx_cropland_maxfapar <- (dplyr::select(lpx_cropland_maxfapar, -c(z,pft)) )
 
-lpx_cropland_minfapar <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_minfapar.csv"),pft=="cropland")
+lpx_cropland_minfapar <- subset(read.csv("~/data/n2o_Yunke/forcing/LPX_annual_actual_minfapar.csv"),pft=="cropland")
 lpx_cropland_minfapar <- (dplyr::select(lpx_cropland_minfapar, -c(z,pft)) )
 
 LPX_cropland_sitemean_n2o <- merge(LPX_cropland_sitemean,lpx_cropland_n2o,by=c("lon","lat"),all.x=TRUE)
@@ -781,6 +787,14 @@ g11
 summary(mod5)
 summary(mod6)
 
+white <- theme(plot.background=element_rect(fill="white", color="white"))
+plot_grid
+plot_grid(g1,g2,white,white,white,white,white,
+          g3,g4,white,white,white,white,white,
+          g5,g6,g7,g8,g9,g10,g11,
+          nrow=3,label_x = 0.8, label_y = 0.8)+white
+ggsave(paste("/Users/yunpeng/Desktop/a.jpg",sep=""), width = 25, height = 12)
+
 #check comparasion
 pred_n2o <- read.csv("~/data/n2o_Yunke/forcing/LPX_years_all_n2o.csv")
 predict_cropland_n2o <- subset(pred_n2o,pft=="cropland")
@@ -791,12 +805,14 @@ cropland3_compare <- merge(cropland2_liao,predict_cropland_n2o,
 
 summary(cropland3_compare)
 cropland3_compare$obs_n2o <- cropland3_compare$n2o_ugm2h
-analyse_modobs2(cropland3_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg 
+analyse_modobs2(cropland3_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg +
+  theme(axis.text=element_text(size=20),axis.title=element_text(size=20), plot.subtitle=element_text(size=20))
 
 cropland3_compare$log_obs_n2o <- log(cropland3_compare$obs_n2o)
 cropland3_compare$log_pred_n2o <- log(cropland3_compare$pred_n2o)
 #log
-analyse_modobs2(cropland3_compare,"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg 
+analyse_modobs2(cropland3_compare,"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg +
+  theme(axis.text=element_text(size=20),axis.title=element_text(size=20), plot.subtitle=element_text(size=20))
 
 #emission factor
 cropland_EF <- subset(cropland,is.na(EF)==FALSE)
@@ -817,7 +833,7 @@ cropland_EF_compare <- merge(cropland_EF,pred_EF,
 
 summary(cropland_EF_compare)
 cropland_EF_compare$obs_EF <- cropland_EF_compare$EF/100
-analyse_modobs2(cropland_EF_compare,"pred_EF","obs_EF", type = "points",relative=TRUE)$gg 
+analyse_modobs2(cropland_EF_compare,"pred_EF","obs_EF", type = "points",relative=TRUE)$gg
 
 
 #AAA: output cropland data-frame for LPX model use

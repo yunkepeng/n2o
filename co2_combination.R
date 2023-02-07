@@ -6,6 +6,8 @@ library(MuMIn)
 library(lmerTest)
 #source("/Users/yunpeng/yunkepeng/CNuptake_MS/R/stepwise.R")
 source("/Users/yunpeng/yunkepeng/CNuptake_MS/R/stepwise_lm.R")
+library(raster)
+devtools::load_all("/Users/yunpeng/yunkepeng/latest_packages/rbeni/") 
 
 stepwise <- function(df_input,target_var){
   #-----------------------------------------------------------------------
@@ -255,7 +257,7 @@ summary(df1_all$logr)
 
 #using LPX
 mod1 <- (lm(logr~log_co2+Nfer_a+PPFD_total_a,df1_all_test))
-
+summary(mod1)
 LPX_co2_sitemean <- na.omit(df1_all[,c("lon","lat","z","pft","logr","log_co2","Nfer_a","PPFD_total_a")])
 LPX_co2_sitemean <- unique(LPX_co2_sitemean[,c("lon","lat","z","pft")])
 dim(LPX_co2_sitemean)
@@ -511,78 +513,51 @@ g4
 g5 <- visreg_ggplot(fits_dT,"dT","black","red")
 g5
 
-####not used
-df2_plotmean <- aggregate(df2,by=list(df2$ref,df2$nferinfo,df2$pft), FUN=mean, na.rm=TRUE)
-dim(df1_plotmean)
+#upscalling 
+#dT <- 0.2/30 #https://www.pnas.org/doi/10.1073/pnas.0606291103
 
-ggplot(df2_plotmean)+geom_point(aes(x=dT,y=logr,color=Group.2,shape=Group.3),size=3)+geom_smooth(aes(x=dT,y=logr),method="lm")+ylab("log (N2O-e / N2O-a)")
-summary(lm(logr~dT,df2_plotmean)) # R2 = 0.21
+soc_nc <- read_nc_onefile("~/data/nimpl_sofun_inputs/map/Final_ncfile/ORGC.nc")
+orgc_df <- as.data.frame(nc_to_df(soc_nc, varnam = "ORGC"))
+summary(orgc_df)
 
-ggplot(df2_plotmean)+geom_point(aes(x=dT,y=logr,color=Group.2,shape=Group.3),size=3)+
-  geom_smooth(aes(x=dT,y=logr),method="lm",formula=y~0+x)+ylab("log (N2O-e / N2O-a)")
-summary(lm(logr~-1+dT,df2_plotmean)) # R2 = 0.21
-df2_plotmean$dT_2 <- df2_plotmean$dT^2
-model2 <- (lm(logr~ -1+dT+dT_2,df2_plotmean)) # R2 = 0.24
-summary(model2)
-dTValues <- seq(0, 5, 0.01)
+#upscalling
+summary(mod3)
 
-model_predict2 <- predict(model2,list(dT=dTValues, 
-                                     dT_2=dTValues^2))
+#calculate area conversion
+source("~/yunkepeng/CNuptake_MS/R/calc_area.R")
+area_m2 <- calc_area(final_n2o_dT$lat,0.5,0.5)
+#fland - to show each grid's land cover percentage
+nc <- read_nc_onefile("~/data/fland/global.fland.nc") #Input nc
+output_fland <- nc_to_df(nc, varnam = "fland")
+fland <- output_fland$fland
+#include conversion factor (from g to Pg)
+conversion <- area_m2 * fland
+#aa <- sum(conversion,na.rm=T)
+#fraction <- conversion/aa
+#sum(fraction,na.rm=T)
 
-df2_line <- as.data.frame(cbind(dTValues,model_predict2))
-ggplot(df2_plotmean)+geom_point(aes(x=dT,y=logr,color=Group.2,shape=Group.3),size=3)+
-  geom_line(data=df2_line,aes(x=dTValues,y=model_predict2))+ylab("log (N2O-e / N2O-a)")
+#if temperature increases from 1-8
+final1 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*1)
+final2 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*2)
+final3 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*3)
+final4 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*4)
+final5 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*5)
+final6 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*6)
+final7 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7)
+final8 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*8)
 
+response_n2o <- c(median(final1,na.rm=T),median(final2,na.rm=T),median(final3,na.rm=T),median(final4,na.rm=T),
+  median(final5,na.rm=T),median(final6,na.rm=T),median(final7,na.rm=T),median(final8,na.rm=T))
 
-df2 %>%
-  ggplot() +
-  geom_boxplot( aes(x=pft, y=sen_n2o),alpha = 0.6,outlier.shape = NA)+
-  geom_boxplot(data=df2,aes(y=sen_n2o),alpha = 0.6,outlier.shape = NA)+
-  geom_jitter(aes(x=pft, y=sen_n2o,color=nferinfo),size=2,width = 0.3) +
-  geom_hline( linetype = 'dotted',yintercept=0.0, size=0.5)+ 
-  theme_classic()+coord_flip()+theme(axis.text=element_text(size=12))+
-  labs(x="", y=~paste(N2O," response to ",warming)) 
+final_dt <- as.data.frame(cbind(response_n2o,c(1:8)))
+names(final_dt) <- c("response","dT")
+final_dt$response <- final_dt$response*17 #Tg/yr
+final_dt <- rbind(final_dt,c(17,0))
+plot(response~dT,final_dt)
+summary(lm(response~dT,final_dt))
 
-df2 %>%
-  ggplot( aes(x=pft, y=logr)) +
-  geom_boxplot(alpha = 0.6,outlier.shape = NA)+
-  geom_jitter(aes(size=1/weight)) + #weight = na * ni / (na+ni))
-  geom_hline( linetype = 'dotted',yintercept=0.0, size=0.5)+ 
-  theme_classic()+coord_flip()+theme(axis.text=element_text(size=12))+
-  labs(x="", y=~paste(N2O," response to ",eCO[2])) 
+ggplot(final_dt,aes(x=dT,y=response))+geom_point()+ylab("Global N2O emission (Tg N/yr)")
 
-df2$group[df2$group!=">2"] <- "<=2"
-unique(df2$group)
-df2 %>%
-  ggplot() +
-  geom_boxplot( aes(x=group, y=sen_n2o),alpha = 0.6,outlier.shape = NA)+
-  geom_boxplot(data=df1,aes(y=sen_n2o),alpha = 0.6,outlier.shape = NA)+
-  geom_jitter(aes(x=group, y=sen_n2o,shape=pft,color=nferinfo),size=2,width = 0.3) +
-  geom_hline( linetype = 'dotted',yintercept=0.0, size=0.5)+ 
-  theme_classic()+coord_flip()+theme(axis.text=element_text(size=12))+
-  labs(x="", y=~paste(N2O," response to ",eCO[2])) 
-
-#co2 and warming combination effects
-df3 <- read_csv("~/data/n2o_wang_oikos/n2o_tables3.csv")
-summary(df3)
-names(df3) <- c("ref","location","n_amb","n_elv","n_site","n2o_amb",
-                "n2o_elv","dT","co2_amb","co2_elv","dCO2","duration","pft","logr",
-                "weight","method","species","Nfer","other")
-
-df3$Nfer <- as.numeric(df3$Nfer)
-
-df3$logr <- log(df3$n2o_elv/df3$n2o_amb)
-
-df3$nferinfo<- "no"
-df3$nferinfo[df3$Nfer>0]<- "fertilized"
-
-summary(lm(logr~dT+dCO2,data=df3))
-
-df3 %>%
-  ggplot() +
-  geom_boxplot( aes(x=pft, y=logr),alpha = 0.6,outlier.shape = NA)+
-  geom_boxplot(data=df3,aes(y=logr),alpha = 0.6,outlier.shape = NA)+
-  geom_jitter(aes(x=pft, y=logr,color=nferinfo),size=2,width = 0.3) +
-  geom_hline( linetype = 'dotted',yintercept=0.0, size=0.5)+ 
-  theme_classic()+coord_flip()+theme(axis.text=element_text(size=12))+
-  labs(x="", y=~paste(N2O," response to ",warming_and_co2)) 
+final_n2o_dT <- as.data.frame(cbind(orgc_df[,c("lon","lat")],final4))
+names(final_n2o_dT) <- c("lon","lat","n2o_e_a")
+plot_map3(final_n2o_dT)

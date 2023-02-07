@@ -117,6 +117,70 @@ names(all_annual_n2o) <- c("lon","lat","z","pft",paste0("year",c(1980:2016)))
 csvfile <- paste("~/data/n2o_Yunke/forcing/LPX_annual_n2o.csv")
 write_csv(all_annual_n2o, path = csvfile)
 
+#fapar
+
+empty_data1 <- data.frame(matrix(NA)) 
+empty_data2 <- data.frame(matrix(NA)) 
+empty_data3 <- data.frame(matrix(NA)) 
+
+for (i in c(1561:2004)) {
+  print(i)
+  site_data <- SpatialPoints(forest[,c("lon","lat")])
+  pft1 <- (raster::extract(raster("~/data/LPX/data/LPX-Bern_SH6_fAPARpft_lu.nc",
+                                  band=i,level=1), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(forest, by = c("lon", "lat")))[,1]
+  empty_data1[1:nrow(forest),(i-1560)]<- pft1
+  
+  site_data <- SpatialPoints(grassland[,c("lon","lat")])
+  pft1 <- (raster::extract(raster("~/data/LPX/data/LPX-Bern_SH6_fAPARpft_lu.nc",
+                                  band=i,level=3), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(grassland, by = c("lon", "lat")))[,1]
+  empty_data2[1:nrow(grassland),(i-1560)]<- pft1
+  
+  site_data <- SpatialPoints(cropland[,c("lon","lat")])
+  pft1 <- (raster::extract(raster("~/data/LPX/data/LPX-Bern_SH6_fAPARpft_lu.nc",
+                                  band=i,level=2), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(cropland, by = c("lon", "lat")))[,1]
+  empty_data3[1:nrow(cropland),(i-1560)]<- pft1
+  
+} 
+
+#rbind into one
+all_fapar <- as.data.frame(rbind(empty_data1,empty_data2,empty_data3))
+all_site <- as.data.frame(rbind(forest,grassland,cropland))
+
+annual_minfapar <- data.frame(matrix(NA))
+annual_meanfapar <- data.frame(matrix(NA))
+annual_maxfapar <- data.frame(matrix(NA))
+
+for (i in c(1:37)) {
+  annual_minfapar[1:nrow(all_fapar),i] <- apply(all_fapar[1:nrow(all_fapar),c((i*12-11):(i*12))], 1, FUN = min, na.rm = TRUE)
+  annual_meanfapar[1:nrow(all_fapar),i] <- apply(all_fapar[1:nrow(all_fapar),c((i*12-11):(i*12))], 1, FUN = mean, na.rm = TRUE)
+  annual_maxfapar[1:nrow(all_fapar),i] <- apply(all_fapar[1:nrow(all_fapar),c((i*12-11):(i*12))], 1, FUN = max, na.rm = TRUE)
+  print(i)
+} 
+
+final_minfapar <- as.data.frame(cbind(all_site,annual_minfapar))
+final_meanfapar <- as.data.frame(cbind(all_site,annual_meanfapar))
+final_maxfapar <- as.data.frame(cbind(all_site,annual_maxfapar))
+
+names(final_minfapar) <- c("lon","lat","z","pft",paste0("year",c(1980:2016)))
+names(final_meanfapar) <- c("lon","lat","z","pft",paste0("year",c(1980:2016)))
+names(final_maxfapar) <- c("lon","lat","z","pft",paste0("year",c(1980:2016)))
+
+final_minfapar[sapply(final_minfapar, is.nan)] <- NA
+final_minfapar[sapply(final_minfapar, is.infinite)] <- NA
+final_meanfapar[sapply(final_meanfapar, is.nan)] <- NA
+final_meanfapar[sapply(final_meanfapar, is.infinite)] <- NA
+final_maxfapar[sapply(final_maxfapar, is.nan)] <- NA
+final_maxfapar[sapply(final_maxfapar, is.infinite)] <- NA
+
+csvfile <- paste("~/data/n2o_Yunke/forcing/LPX_annual_actual_minfapar.csv")
+write_csv(final_minfapar, path = csvfile)
+csvfile <- paste("~/data/n2o_Yunke/forcing/LPX_annual_actual_meanfapar.csv")
+write_csv(final_meanfapar, path = csvfile)
+csvfile <- paste("~/data/n2o_Yunke/forcing/LPX_annual_actual_maxfapar.csv")
+write_csv(final_maxfapar, path = csvfile)
 
 #2. moisture
 forest <- subset(df_all,pft=="forest")
@@ -182,7 +246,7 @@ forest <- subset(df_all,pft=="forest")
 grassland <- subset(df_all,pft=="grassland")
 cropland <- subset(df_all,pft=="cropland")
 
-a1 <- raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",band=171)
+a1 <- raster("~/data/LPX/data/nfert_NMIP2022_1850-2021_per_landuse.nc",band=171)
 plot(a1) # unit in gN/m2
 #NH4CROP, NO3CROP, NH4PAST, NO3PAST
 #band: 1-171
@@ -199,20 +263,20 @@ empty_data3 <- data.frame(matrix(NA))
 for (i in c(131:167)) {
   print(i)
   site_data <- SpatialPoints(grassland[,c("lon","lat")]) # only select lon and lat
-  pft1 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",
+  pft1 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021_per_landuse.nc",
                                   band=i,varname="NH4PAST"), site_data, sp = TRUE) %>%
              as_tibble() %>% right_join(grassland, by = c("lon", "lat")))[,1]
-  pft2 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",
+  pft2 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021_per_landuse.nc",
                                   band=i,varname="NO3PAST"), site_data, sp = TRUE) %>%
              as_tibble() %>% right_join(grassland, by = c("lon", "lat")))[,1]
   pft_all <- pft1+pft2
   empty_data2[1:nrow(grassland),(i-130)]<- pft_all
   
   site_data <- SpatialPoints(cropland[,c("lon","lat")]) # only select lon and lat
-  pft1 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",
+  pft1 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021_per_landuse.nc",
                                   band=i,varname="NH4CROP"), site_data, sp = TRUE) %>%
              as_tibble() %>% right_join(cropland, by = c("lon", "lat")))[,1]
-  pft2 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",
+  pft2 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021_per_landuse.nc",
                                   band=i,varname="NO3CROP"), site_data, sp = TRUE) %>%
              as_tibble() %>% right_join(cropland, by = c("lon", "lat")))[,1]
   pft_all <- pft1+pft2
