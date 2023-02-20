@@ -33,6 +33,8 @@ library(visreg)
 library(readr)
 library(matrixStats)
 library(car)
+library(deming)
+
 devtools::load_all("/Users/yunpeng/yunkepeng/latest_packages/rbeni/")
 
 ### Liao et al. 2020 GCB: https://onlinelibrary.wiley.com/doi/full/10.1111/gcb.16365
@@ -487,19 +489,20 @@ fits_moisture <- dplyr::bind_rows(mutate(mod1_moisture$fit, plt = "Measurement")
 fits_tg <- dplyr::bind_rows(mutate(mod1_Tg$fit, plt = "Measurement"),mutate(mod2_Tg$fit, plt = "LPX"))
 
 ###converted to lm
-visreg_ggplot <- function(obj,var_name,color1,color2){
+visreg_ggplot <- function(obj,var_name,color1,color2,xlab_name,ylab_name){
   final1 <- ggplot() + geom_line(data = obj, aes_string(var_name, "visregFit", group="plt", color="plt"),size=2) +
     theme_classic()+theme(text = element_text(size=20),legend.position="none")+
     geom_ribbon(data = obj,aes_string(var_name, ymin="visregLwr", ymax="visregUpr",fill="plt"),alpha=0.5)+
     scale_colour_manual(values=c(Measurement=color1,LPX=color2))+
-    scale_fill_manual(values=c(Measurement=color1,LPX=color2))
+    scale_fill_manual(values=c(Measurement=color1,LPX=color2))+xlab(xlab_name) + ylab(ylab_name)
 
   return(final1)
 }
 
-g1 <- visreg_ggplot(fits_tg,"Tg_a","black","red")
+
+g1 <- visreg_ggplot(fits_tg,"Tg_a","black","red","Tg (°C)","ln N2O (ug/m2/h)")
 g1
-g2 <- visreg_ggplot(fits_moisture,"obs_moisture","black","red")
+g2 <- visreg_ggplot(fits_moisture,"obs_moisture","black","red","Soil moisture"," ")
 g2
 
 #check comparasion
@@ -521,8 +524,11 @@ forest_compare2 <- merge(forest_compare,pred_forest_cover,
 nrow(subset(forest_compare2,forest_cover>=0.8))/nrow(forest_compare2)
 forest_compare3 <-subset(forest_compare2,forest_cover>=0.8)
 forest_compare3$obs_n2o <- forest_compare3$n2o_ugm2h
-analyse_modobs2(forest_compare3,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg+
-  theme(axis.text=element_text(size=20),axis.title=element_text(size=20), plot.subtitle=element_text(size=20))
+q1 <- analyse_modobs2(forest_compare3,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg+
+  theme(axis.text=element_text(size=15),axis.title=element_text(size=15),
+        plot.subtitle=element_text(size=15))+xlab("Predicted Forest N2O (ug/m2/h)")+ylab("Measured Forest N2O (ug/m2/h)")
+
+theilsen(obs_n2o~pred_n2o,forest_compare3)
 
 forest_compare3$log_obs_n2o <- log(forest_compare3$obs_n2o)
 forest_compare3$log_pred_n2o <- log(forest_compare3$pred_n2o)
@@ -607,10 +613,10 @@ fits_minfapar <- dplyr::bind_rows(mutate(mod3_minfapar$fit, plt = "Measurement")
 
 ###converted to lm
 
-g3 <- visreg_ggplot(fits_nfer,"sqrt_Nfer_kgha","black","red")
+g3 <- visreg_ggplot(fits_nfer,"sqrt_Nfer_kgha","black","red","sqrt N fertilisation (kg/ha)","ln N2O (ug/m2/h)")
 g3
 
-g4 <- visreg_ggplot(fits_minfapar,"min_fapar","black","red")
+g4 <- visreg_ggplot(fits_minfapar,"min_fapar","black","red","min fAPAR"," ")
 g4
 
 summary(mod3)
@@ -626,9 +632,11 @@ grassland3_compare <- merge(grassland2_field,predict_grassland_n2o,
 
 summary(grassland3_compare)
 grassland3_compare$obs_n2o <- grassland3_compare$n2o_ugm2h
-analyse_modobs2(grassland3_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg +
-  theme(axis.text=element_text(size=20),axis.title=element_text(size=20), plot.subtitle=element_text(size=20))
+q2 <- analyse_modobs2(grassland3_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg +
+  theme(axis.text=element_text(size=15),axis.title=element_text(size=15),
+        plot.subtitle=element_text(size=15))+xlab("Predicted Grassland N2O (ug/m2/h)")+ylab("Measured Grassland N2O (ug/m2/h)")
 
+theilsen(obs_n2o~pred_n2o,grassland3_compare)
 
 grassland3_compare$log_obs_n2o <- log(grassland3_compare$obs_n2o)
 grassland3_compare$log_pred_n2o <- log(grassland3_compare$pred_n2o)
@@ -741,7 +749,7 @@ final_cropland_lpx <- as.data.frame(cbind(cropland_n2o,nfer_n2o,vpd_n2o,
 names(final_cropland_lpx) <- c("n2o_a","sqrt_Nfer_kgha","vpd_a","Tg_a",
                                 "PPFD_total_a","max_fapar","min_fapar","orgc_a")
 
-mod6 <- ((lm(n2o_a~orgc_a+sqrt_Nfer_kgha+vpd_a+Tg_a+PPFD_total_a+max_fapar+min_fapar,data=final_cropland_lpx)))
+mod6 <- ((lm(n2o_a~sqrt_Nfer_kgha+Tg_a+PPFD_total_a+max_fapar+min_fapar,data=final_cropland_lpx)))
 summary(mod6)
 
 mod5_nfer <- visreg(mod5,"sqrt_Nfer_kgha",type="contrast")
@@ -753,28 +761,28 @@ mod5_max_fapar <- visreg(mod5,"max_fapar",type="contrast")
 mod5_min_fapar <- visreg(mod5,"min_fapar",type="contrast")
 
 mod6_nfer <- visreg(mod6,"sqrt_Nfer_kgha",type="contrast")
-mod6_soc <- visreg(mod6,"orgc_a",type="contrast")
+#mod6_soc <- visreg(mod6,"orgc_a",type="contrast")
 mod6_ppfd_total <- visreg(mod6,"PPFD_total_a",type="contrast")
-mod6_vpd <- visreg(mod6,"vpd_a",type="contrast")
+#mod6_vpd <- visreg(mod6,"vpd_a",type="contrast")
 mod6_Tg <- visreg(mod6,"Tg_a",type="contrast")
 mod6_max_fapar <- visreg(mod6,"max_fapar",type="contrast")
 mod6_min_fapar <- visreg(mod6,"min_fapar",type="contrast")
 
 fits_nfer <- dplyr::bind_rows(mutate(mod5_nfer$fit, plt = "Measurement"),mutate(mod6_nfer$fit, plt = "LPX"))
-fits_soc <- dplyr::bind_rows(mutate(mod5_soc$fit, plt = "Measurement"),mutate(mod6_soc$fit, plt = "LPX"))
+fits_soc <- dplyr::bind_rows(mutate(mod5_soc$fit, plt = "Measurement"))
 fits_ppfd_total <- dplyr::bind_rows(mutate(mod5_ppfd_total$fit, plt = "Measurement"),mutate(mod6_ppfd_total$fit, plt = "LPX"))
-fits_vpd <- dplyr::bind_rows(mutate(mod5_vpd$fit, plt = "Measurement"),mutate(mod6_vpd$fit, plt = "LPX"))
+fits_vpd <- dplyr::bind_rows(mutate(mod5_vpd$fit, plt = "Measurement"))
 fits_Tg <- dplyr::bind_rows(mutate(mod5_Tg$fit, plt = "Measurement"),mutate(mod6_Tg$fit, plt = "LPX"))
 fits_max_fapar <- dplyr::bind_rows(mutate(mod5_max_fapar$fit, plt = "Measurement"),mutate(mod6_max_fapar$fit, plt = "LPX"))
 fits_min_fapar <- dplyr::bind_rows(mutate(mod5_min_fapar$fit, plt = "Measurement"),mutate(mod6_min_fapar$fit, plt = "LPX"))
 
-g5 <- visreg_ggplot(fits_nfer,"sqrt_Nfer_kgha","black","red")
-g6 <- visreg_ggplot(fits_soc,"orgc_a","black","red")
-g7 <- visreg_ggplot(fits_ppfd_total,"PPFD_total_a","black","red")
-g8 <- visreg_ggplot(fits_Tg,"Tg_a","black","red")
-g9 <- visreg_ggplot(fits_vpd,"vpd_a","black","red")
-g10 <- visreg_ggplot(fits_max_fapar,"max_fapar","black","red")
-g11 <- visreg_ggplot(fits_min_fapar,"min_fapar","black","red")
+g5 <- visreg_ggplot(fits_nfer,"sqrt_Nfer_kgha","black","red","sqrt N fertilisation (kg/ha)","ln N2O (ug/m2/h)")
+g6 <- visreg_ggplot(fits_soc,"orgc_a","black","red","ln SOC (g/kg)"," ")
+g7 <- visreg_ggplot(fits_ppfd_total,"PPFD_total_a","black","red","ln total gPPFD (mol/m2)"," ")
+g8 <- visreg_ggplot(fits_Tg,"Tg_a","black","red","Tg (°C)"," ")
+g9 <- visreg_ggplot(fits_vpd,"vpd_a","black","red","ln vpd (kPa)"," ")
+g10 <- visreg_ggplot(fits_max_fapar,"max_fapar","black","red","max fAPAR"," ")
+g11 <- visreg_ggplot(fits_min_fapar,"min_fapar","black","red","min fAPAR"," ")
 
 g5
 g6
@@ -789,9 +797,9 @@ summary(mod6)
 
 white <- theme(plot.background=element_rect(fill="white", color="white"))
 plot_grid
-plot_grid(g1,g2,white,white,white,white,white,
-          g3,g4,white,white,white,white,white,
-          g5,g6,g7,g8,g9,g10,g11,
+plot_grid(g1+labs(title="Forest model"),g2,white,white,white,white,white,
+          g3+labs(title="Grassland model"),g4,white,white,white,white,white,
+          g5+labs(title="Cropland model"),g6,g7,g8,g9,g10,g11,
           nrow=3,label_x = 0.8, label_y = 0.8)+white
 ggsave(paste("/Users/yunpeng/Desktop/a.jpg",sep=""), width = 25, height = 12)
 
@@ -805,8 +813,11 @@ cropland3_compare <- merge(cropland2_liao,predict_cropland_n2o,
 
 summary(cropland3_compare)
 cropland3_compare$obs_n2o <- cropland3_compare$n2o_ugm2h
-analyse_modobs2(cropland3_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg +
-  theme(axis.text=element_text(size=20),axis.title=element_text(size=20), plot.subtitle=element_text(size=20))
+q3 <- analyse_modobs2(cropland3_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg +
+  theme(axis.text=element_text(size=15),axis.title=element_text(size=15),
+        plot.subtitle=element_text(size=15))+xlab("Predicted Cropland N2O (ug/m2/h)")+ylab("Measured Cropland N2O (ug/m2/h)")
+
+theilsen(obs_n2o~pred_n2o,cropland3_compare)
 
 cropland3_compare$log_obs_n2o <- log(cropland3_compare$obs_n2o)
 cropland3_compare$log_pred_n2o <- log(cropland3_compare$pred_n2o)
@@ -834,7 +845,20 @@ cropland_EF_compare <- merge(cropland_EF,pred_EF,
 summary(cropland_EF_compare)
 cropland_EF_compare$obs_EF <- cropland_EF_compare$EF/100
 analyse_modobs2(cropland_EF_compare,"pred_EF","obs_EF", type = "points",relative=TRUE)$gg
+cropland_EF_compare$log_obs_EF <- log(cropland_EF_compare$obs_EF)
+cropland_EF_compare$log_pred_EF <- log(cropland_EF_compare$pred_EF)
+cropland_EF_compare$log_obs_EF[cropland_EF_compare$log_obs_EF=="Inf"] <- NA
+cropland_EF_compare$log_obs_EF[cropland_EF_compare$log_obs_EF=="-Inf"] <- NA
+cropland_EF_compare2 <- na.omit(cropland_EF_compare[,c("log_pred_EF","log_obs_EF")])
+theilsen(log_obs_EF~log_pred_EF,cropland_EF_compare2)
 
+q4 <- analyse_modobs2(cropland_EF_compare2,"log_pred_EF","log_obs_EF", type = "points",relative=TRUE)$gg+
+  theme(axis.text=element_text(size=15),axis.title=element_text(size=15),
+        plot.subtitle=element_text(size=15))+xlab("Predicted ln EF ")+ylab("Measured ln EF")
+
+plot_grid(q1,q2,q3,q4,
+          nrow=2,label_x = 0.8, label_y = 0.8)+white
+ggsave(paste("/Users/yunpeng/Desktop/c.jpg",sep=""), width = 15, height = 15)
 
 #AAA: output cropland data-frame for LPX model use
 #and check cropland, grassland and forest data

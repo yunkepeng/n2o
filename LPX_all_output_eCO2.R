@@ -53,53 +53,180 @@ cropland <- subset(df_all,pft=="cropland")
 #a1 <- raster("/Users/yunpeng/data/LPX/data/LPX-Bern_SH6_fN2Opft_lu.nc",band=2052,level=1)
 #(1:Natural; 2:Cropland; 3:Pasture; 4:Urban)
 
-empty_data1 <- data.frame(matrix(NA)) 
-empty_data2 <- data.frame(matrix(NA)) 
-empty_data3 <- data.frame(matrix(NA)) 
+empty_data1a <- data.frame(matrix(NA)) 
+empty_data1b <- data.frame(matrix(NA)) 
+empty_data1c <- data.frame(matrix(NA)) 
+empty_data1d <- data.frame(matrix(NA)) 
+empty_data1e <- data.frame(matrix(NA)) 
+empty_data1f <- data.frame(matrix(NA)) 
+empty_data1g <- data.frame(matrix(NA)) 
 
-for (i in c(1:2052)) {
+empty_data2a <- data.frame(matrix(NA)) 
+empty_data2b <- data.frame(matrix(NA)) 
+empty_data2c <- data.frame(matrix(NA)) 
+empty_data2d <- data.frame(matrix(NA)) 
+empty_data2e <- data.frame(matrix(NA)) 
+empty_data2f <- data.frame(matrix(NA)) 
+empty_data2g <- data.frame(matrix(NA)) 
+
+empty_data3a <- data.frame(matrix(NA)) 
+empty_data3b <- data.frame(matrix(NA)) 
+empty_data3c <- data.frame(matrix(NA)) 
+empty_data3d <- data.frame(matrix(NA)) 
+empty_data3e <- data.frame(matrix(NA)) 
+empty_data3f <- data.frame(matrix(NA)) 
+empty_data3g <- data.frame(matrix(NA)) 
+
+for (i in c(1:100)) {
   print(i)
   site_data <- SpatialPoints(forest[,c("lon","lat")])
-  pft1 <- (raster::extract(raster("~/data/LPX/data/LPX-Bern_SH6_fN2Opft_lu.nc",
+  pft1 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_380_dT_0/LPX-Bern_co2_380_dT_0_fN2Opft_lu_annual.nc",
                                   band=i,level=1), site_data, sp = TRUE) %>%
              as_tibble() %>% right_join(forest, by = c("lon", "lat")))[,1]
-  empty_data1[1:nrow(forest),(i)]<- pft1
+  empty_data1a[1:nrow(forest),(i)]<- pft1
   
+  pft2 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_380_dT_0.39/LPX-Bern_co2_380_dT_0.39_fN2Opft_lu_annual.nc",
+                                  band=i,level=1), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(forest, by = c("lon", "lat")))[,1]
+  empty_data1b[1:nrow(forest),(i)]<- pft2
+  
+  pft3 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_380_dT_3.95/LPX-Bern_co2_380_dT_3.95_fN2Opft_lu_annual.nc",
+                                  band=i,level=1), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(forest, by = c("lon", "lat")))[,1]
+  empty_data1c[1:nrow(forest),(i)]<- pft3
+  
+  pft4 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_380_dT_7.5/LPX-Bern_co2_380_dT_7.5_fN2Opft_lu_annual.nc",
+                                  band=i,level=1), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(forest, by = c("lon", "lat")))[,1]
+  empty_data1d[1:nrow(forest),(i)]<- pft4
+  
+  pft5 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_416_dT_0/LPX-Bern_co2_416_dT_0_fN2Opft_lu_annual.nc",
+                                  band=i,level=1), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(forest, by = c("lon", "lat")))[,1]
+  empty_data1e[1:nrow(forest),(i)]<- pft5
+  
+  pft6 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_582_dT_0/LPX-Bern_co2_582_dT_0_fN2Opft_lu_annual.nc",
+                                  band=i,level=1), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(forest, by = c("lon", "lat")))[,1]
+  empty_data1f[1:nrow(forest),(i)]<- pft6
+  
+  pft7 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_813_dT_0/LPX-Bern_co2_813_dT_0_fN2Opft_lu_annual.nc",
+                                  band=i,level=1), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(forest, by = c("lon", "lat")))[,1]
+  empty_data1g[1:nrow(forest),(i)]<- pft7
+  
+  #grassland
   site_data <- SpatialPoints(grassland[,c("lon","lat")])
-  pft1 <- (raster::extract(raster("~/data/LPX/data/LPX-Bern_SH6_fN2Opft_lu.nc",
+  pft1 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_380_dT_0/LPX-Bern_co2_380_dT_0_fN2Opft_lu_annual.nc",
                                   band=i,level=3), site_data, sp = TRUE) %>%
              as_tibble() %>% right_join(grassland, by = c("lon", "lat")))[,1]
-  empty_data2[1:nrow(grassland),(i)]<- pft1
+  empty_data2a[1:nrow(grassland),(i)]<- pft1
   
+  pft2 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_380_dT_0.39/LPX-Bern_co2_380_dT_0.39_fN2Opft_lu_annual.nc",
+                                  band=i,level=3), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(grassland, by = c("lon", "lat")))[,1]
+  empty_data2b[1:nrow(grassland),(i)]<- pft2
+  
+  pft3 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_380_dT_3.95/LPX-Bern_co2_380_dT_3.95_fN2Opft_lu_annual.nc",
+                                  band=i,level=3), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(grassland, by = c("lon", "lat")))[,1]
+  empty_data2c[1:nrow(grassland),(i)]<- pft3
+  
+  pft4 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_380_dT_7.5/LPX-Bern_co2_380_dT_7.5_fN2Opft_lu_annual.nc",
+                                  band=i,level=3), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(grassland, by = c("lon", "lat")))[,1]
+  empty_data2d[1:nrow(grassland),(i)]<- pft4
+  
+  pft5 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_416_dT_0/LPX-Bern_co2_416_dT_0_fN2Opft_lu_annual.nc",
+                                  band=i,level=3), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(grassland, by = c("lon", "lat")))[,1]
+  empty_data2e[1:nrow(grassland),(i)]<- pft5
+  
+  pft6 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_582_dT_0/LPX-Bern_co2_582_dT_0_fN2Opft_lu_annual.nc",
+                                  band=i,level=3), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(grassland, by = c("lon", "lat")))[,1]
+  empty_data2f[1:nrow(grassland),(i)]<- pft6
+  
+  pft7 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_813_dT_0/LPX-Bern_co2_813_dT_0_fN2Opft_lu_annual.nc",
+                                  band=i,level=3), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(grassland, by = c("lon", "lat")))[,1]
+  empty_data2g[1:nrow(grassland),(i)]<- pft7
+  
+  #cropland
   site_data <- SpatialPoints(cropland[,c("lon","lat")])
-  pft1 <- (raster::extract(raster("~/data/LPX/data/LPX-Bern_SH6_fN2Opft_lu.nc",
+  pft1 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_380_dT_0/LPX-Bern_co2_380_dT_0_fN2Opft_lu_annual.nc",
                                   band=i,level=2), site_data, sp = TRUE) %>%
              as_tibble() %>% right_join(cropland, by = c("lon", "lat")))[,1]
-  empty_data3[1:nrow(cropland),(i)]<- pft1
+  empty_data3a[1:nrow(cropland),(i)]<- pft1
   
+  pft2 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_380_dT_0.39/LPX-Bern_co2_380_dT_0.39_fN2Opft_lu_annual.nc",
+                                  band=i,level=2), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(cropland, by = c("lon", "lat")))[,1]
+  empty_data3b[1:nrow(cropland),(i)]<- pft2
+  
+  pft3 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_380_dT_3.95/LPX-Bern_co2_380_dT_3.95_fN2Opft_lu_annual.nc",
+                                  band=i,level=2), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(cropland, by = c("lon", "lat")))[,1]
+  empty_data3c[1:nrow(cropland),(i)]<- pft3
+  
+  pft4 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_380_dT_7.5/LPX-Bern_co2_380_dT_7.5_fN2Opft_lu_annual.nc",
+                                  band=i,level=2), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(cropland, by = c("lon", "lat")))[,1]
+  empty_data3d[1:nrow(cropland),(i)]<- pft4
+  
+  pft5 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_416_dT_0/LPX-Bern_co2_416_dT_0_fN2Opft_lu_annual.nc",
+                                  band=i,level=2), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(cropland, by = c("lon", "lat")))[,1]
+  empty_data3e[1:nrow(cropland),(i)]<- pft5
+  
+  pft6 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_582_dT_0/LPX-Bern_co2_582_dT_0_fN2Opft_lu_annual.nc",
+                                  band=i,level=2), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(cropland, by = c("lon", "lat")))[,1]
+  empty_data3f[1:nrow(cropland),(i)]<- pft6
+  
+  pft7 <- (raster::extract(raster("~/data/LPX/data/step_experiment/co2_813_dT_0/LPX-Bern_co2_813_dT_0_fN2Opft_lu_annual.nc",
+                                  band=i,level=2), site_data, sp = TRUE) %>%
+             as_tibble() %>% right_join(cropland, by = c("lon", "lat")))[,1]
+  empty_data3g[1:nrow(cropland),(i)]<- pft7
 } 
 
-forest_n2o <- data.frame(matrix(NA)) 
-grassland_n2o <- data.frame(matrix(NA)) 
-cropland_n2o <- data.frame(matrix(NA)) 
 
-for (i in c(1:171)) {
-  
-  forest_n2o[1:nrow(forest),i] <- rowMeans(empty_data1[1:nrow(forest),c((i*12-11):(i*12))],na.rm=T)*1000000000*3600 #convert from kg_m2_s to ug_m2_h
-  
-  grassland_n2o[1:nrow(grassland),i] <- rowMeans(empty_data2[1:nrow(grassland),c((i*12-11):(i*12))],na.rm=T)*1000000000*3600 #convert from kg_m2_s to ug_m2_h
-  
-  cropland_n2o[1:nrow(cropland),i] <- rowMeans(empty_data3[1:nrow(cropland),c((i*12-11):(i*12))],na.rm=T)*1000000000*3600 #convert from kg_m2_s to ug_m2_h
-  
-} 
+forest_1a <- rowMeans(empty_data1a,na.rm=T)*1000000000*3600 #convert from kg_m2_s to ug_m2_h
+forest_1b <- rowMeans(empty_data1b,na.rm=T)*1000000000*3600 
+forest_1c <- rowMeans(empty_data1c,na.rm=T)*1000000000*3600 
+forest_1d <- rowMeans(empty_data1d,na.rm=T)*1000000000*3600 
+forest_1e <- rowMeans(empty_data1e,na.rm=T)*1000000000*3600 
+forest_1f <- rowMeans(empty_data1f,na.rm=T)*1000000000*3600 
+forest_1g <- rowMeans(empty_data1g,na.rm=T)*1000000000*3600 
 
-forest_annual_n2o <- as.data.frame(cbind(forest,forest_n2o))
-grassland_annual_n2o <- as.data.frame(cbind(grassland,grassland_n2o))
-cropland_annual_n2o <- as.data.frame(cbind(cropland,cropland_n2o))
+grassland_1a <- rowMeans(empty_data2a,na.rm=T)*1000000000*3600 #convert from kg_m2_s to ug_m2_h
+grassland_1b <- rowMeans(empty_data2b,na.rm=T)*1000000000*3600 
+grassland_1c <- rowMeans(empty_data2c,na.rm=T)*1000000000*3600 
+grassland_1d <- rowMeans(empty_data2d,na.rm=T)*1000000000*3600 
+grassland_1e <- rowMeans(empty_data2e,na.rm=T)*1000000000*3600 
+grassland_1f <- rowMeans(empty_data2f,na.rm=T)*1000000000*3600 
+grassland_1g <- rowMeans(empty_data2g,na.rm=T)*1000000000*3600 
+
+cropland_1a <- rowMeans(empty_data3a,na.rm=T)*1000000000*3600 #convert from kg_m2_s to ug_m2_h
+cropland_1b <- rowMeans(empty_data3b,na.rm=T)*1000000000*3600 
+cropland_1c <- rowMeans(empty_data3c,na.rm=T)*1000000000*3600 
+cropland_1d <- rowMeans(empty_data3d,na.rm=T)*1000000000*3600 
+cropland_1e <- rowMeans(empty_data3e,na.rm=T)*1000000000*3600 
+cropland_1f <- rowMeans(empty_data3f,na.rm=T)*1000000000*3600 
+cropland_1g <- rowMeans(empty_data3g,na.rm=T)*1000000000*3600 
+
+forest_annual_n2o <- as.data.frame(cbind(forest,forest_1a,forest_1b,forest_1c,forest_1d,forest_1e,forest_1f,forest_1g))
+grassland_annual_n2o <- as.data.frame(cbind(grassland,grassland_1a,grassland_1b,grassland_1c,grassland_1d,grassland_1e,grassland_1f,grassland_1g))
+cropland_annual_n2o <- as.data.frame(cbind(cropland,cropland_1a,cropland_1b,cropland_1c,cropland_1d,cropland_1e,cropland_1f,cropland_1g))
+names(forest_annual_n2o) <- c("lon","lat","z","pft","dT0_C380","dT0.39_C380","dT3.95_C380",
+             "dT7.5_C380","dT0_C416","dT0_C582","dT0_C813")
+names(grassland_annual_n2o) <- c("lon","lat","z","pft","dT0_C380","dT0.39_C380","dT3.95_C380",
+                              "dT7.5_C380","dT0_C416","dT0_C582","dT0_C813")
+names(cropland_annual_n2o) <- c("lon","lat","z","pft","dT0_C380","dT0.39_C380","dT3.95_C380",
+                              "dT7.5_C380","dT0_C416","dT0_C582","dT0_C813")
 
 all_annual_n2o <- as.data.frame(rbind(forest_annual_n2o,grassland_annual_n2o,cropland_annual_n2o))
 
-names(all_annual_n2o) <- c("lon","lat","z","pft",paste0("year",c(1850:2020)))
 csvfile <- paste("~/data/n2o_Yunke/forcing/eCO2_LPX_annual_n2o.csv")
 write_csv(all_annual_n2o, path = csvfile)
 
