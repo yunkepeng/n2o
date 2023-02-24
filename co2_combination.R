@@ -244,42 +244,6 @@ summary(lm(logr~days_a+log_co2,df1_all))
 df1_all_test <- na.omit(df1_all[,c("log_co2","Nfer_a","min_fapar","mean_fapar","max_fapar","PPFD_total_a",
                                    "Tg","vpd_a","orgc_a","logr")]) #removed ndep_a
 stepwise_lm(df1_all_test,"logr")[[1]]
-
-#CO2 should definitely be included - then start to finding the next factors
-#AIC(lm(logr~-1+log_co2+Nfer_a,df1_all_test))
-#AIC(lm(logr~-1+log_co2+min_fapar,df1_all_test))
-#AIC(lm(logr~-1+log_co2+mean_fapar,df1_all_test))
-#AIC(lm(logr~-1+log_co2+max_fapar,df1_all_test))
-#AIC(lm(logr~-1+log_co2+PPFD_total_a,df1_all_test))
-#AIC(lm(logr~-1+log_co2+Tg,df1_all_test))
-#AIC(lm(logr~-1+log_co2+vpd_a,df1_all_test))
-#AIC(lm(logr~-1+log_co2+orgc_a,df1_all_test))
-
-#ppfd_total should be included -> find the third one
-#AIC(lm(logr~-1+log_co2+PPFD_total_a+Nfer_a,df1_all_test))
-#AIC(lm(logr~-1+log_co2+PPFD_total_a+min_fapar,df1_all_test))
-#AIC(lm(logr~-1+log_co2+PPFD_total_a+mean_fapar,df1_all_test))
-#AIC(lm(logr~-1+log_co2+PPFD_total_a+max_fapar,df1_all_test))
-#AIC(lm(logr~-1+log_co2+PPFD_total_a+Tg,df1_all_test))
-#AIC(lm(logr~-1+log_co2+PPFD_total_a+vpd_a,df1_all_test))
-#AIC(lm(logr~-1+log_co2+PPFD_total_a+orgc_a,df1_all_test))
-
-#still, this one - all significant
-#summary(lm(logr~-1+log_co2+PPFD_total_a+Nfer_a,df1_all_test))
-#another attempt?
-#AIC(lm(logr~-1+log_co2+PPFD_total_a+Nfer_a+min_fapar,df1_all_test))
-#AIC(lm(logr~-1+log_co2+PPFD_total_a+Nfer_a+mean_fapar,df1_all_test))
-#AIC(lm(logr~-1+log_co2+PPFD_total_a+Nfer_a+max_fapar,df1_all_test))
-#AIC(lm(logr~-1+log_co2+PPFD_total_a+Nfer_a+Tg,df1_all_test))
-#AIC(lm(logr~-1+log_co2+PPFD_total_a+Nfer_a+vpd_a,df1_all_test))
-#AIC(lm(logr~-1+log_co2+PPFD_total_a+Nfer_a+orgc_a,df1_all_test))
-#summary(lm(logr~-1+log_co2+PPFD_total_a+Nfer_a+mean_fapar,df1_all_test))#the lowest condition is this, but non-significant
-#so this is the final model
-#summary(lm(logr~-1+log_co2+PPFD_total_a+Nfer_a,df1_all_test))
-
-#but this model actually works well
-#summary(lm(logr~-1+log_co2+Tg+Nfer_a,df1_all_test))
-
 mod1 <- (lm(logr~log_co2+Nfer_a+PPFD_total_a,df1_all_test))
 summary(mod1)
 
@@ -444,37 +408,6 @@ stepwise_lm(df2_all_test,"logr")[[2]]
 #Start fitting model
 df2_all_test <- na.omit(df2_all[,c("dT","Nfer_a","min_fapar","mean_fapar","max_fapar","PPFD_total_a",
                                    "vpd_a","orgc_a","logr")])#remove ndep_a
-#dT should definitely be included - then start to finding the next factors
-#AIC(lm(logr~-1+dT,df2_all_test))
-#AIC(lm(logr~-1+dT+Nfer_a,df2_all_test))
-#AIC(lm(logr~-1+dT+min_fapar,df2_all_test))
-#AIC(lm(logr~-1+dT+mean_fapar,df2_all_test))
-#AIC(lm(logr~-1+dT+max_fapar,df2_all_test))
-#AIC(lm(logr~-1+dT+PPFD_total_a,df2_all_test))
-#AIC(lm(logr~-1+dT+vpd_a,df2_all_test))
-#AIC(lm(logr~-1+dT+orgc_a,df2_all_test))
-#this one
-#add second factor - it fails
-#AIC(lm(logr~-1+dT+min_fapar,df2_all_test))
-#AIC(lm(logr~-1+dT+min_fapar+Nfer_a,df2_all_test))
-#AIC(lm(logr~-1+dT+min_fapar+mean_fapar,df2_all_test))
-#AIC(lm(logr~-1+dT+min_fapar+max_fapar,df2_all_test))
-#AIC(lm(logr~-1+dT+min_fapar+PPFD_total_a,df2_all_test))
-#AIC(lm(logr~-1+dT+min_fapar+vpd_a,df2_all_test))
-#AIC(lm(logr~-1+dT+min_fapar+orgc_a,df2_all_test))
-#so the final model is:
-#summary(lm(logr~-1+dT+min_fapar,df2_all_test))
-#mod3 <- (lm(logr~-1+dT+min_fapar,df2_all_test))
-#summary(mod3)
-#mod3a <- visreg(mod3,"min_fapar",type="contrast")
-#mod3b <-visreg(mod3,"dT",type="contrast")
-#but the best model should be:
-#mod3 <- (lm(logr~-1+dT+orgc_a+max_fapar,df2_all_test))#AIC=131.56
-#mod3a <- visreg(mod3,"max_fapar",type="contrast")
-#mod3b <-visreg(mod3,"dT",type="contrast")
-#mod3c <-visreg(mod3,"orgc_a",type="contrast")
-#summary(mod3)
-
 stepwise_lm(df2_all_test,"logr")[[1]]
 mod3 <- (lm(logr~orgc_a+dT,df2_all))
 summary(mod3)
