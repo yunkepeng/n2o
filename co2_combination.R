@@ -481,8 +481,8 @@ ggsave(paste("/Users/yunpeng/Desktop/b.jpg",sep=""), width = 15, height = 10)
 
 
 #upscalling 
-#dT <- 0.2/30 #https://www.pnas.org/doi/10.1073/pnas.0606291103
-
+#assume global n2o = 17 Tg/yr
+#https://www.nature.com/articles/s41586-020-2780-0
 soc_nc <- read_nc_onefile("~/data/nimpl_sofun_inputs/map/Final_ncfile/ORGC.nc")
 orgc_df <- as.data.frame(nc_to_df(soc_nc, varnam = "ORGC"))
 summary(orgc_df)
@@ -491,40 +491,54 @@ summary(orgc_df)
 summary(mod3)
 
 #calculate area conversion
-#source("~/yunkepeng/CNuptake_MS/R/calc_area.R")
-#area_m2 <- calc_area(final_n2o_dT$lat,0.5,0.5)
+source("~/yunkepeng/CNuptake_MS/R/calc_area.R")
+area_m2 <- calc_area(orgc_df$lat,0.5,0.5)
 #fland - to show each grid's land cover percentage
-#nc <- read_nc_onefile("~/data/fland/global.fland.nc") #Input nc
-#output_fland <- nc_to_df(nc, varnam = "fland")
-#fland <- output_fland$fland
-#include conversion factor (from g to Pg)
-#conversion <- area_m2 * fland
-#aa <- sum(conversion,na.rm=T)
-#fraction <- conversion/aa
-#sum(fraction,na.rm=T)
+nc <- read_nc_onefile("~/data/fland/global.fland.nc") #Input nc
+output_fland <- nc_to_df(nc, varnam = "fland")
+fland <- output_fland$fland
+summary(fland)
+#area_m2 * fland = land area at each grid
+conversion <- area_m2 * fland
+aa <- sum(conversion,na.rm=T)
+fraction <- conversion/aa
+sum(fraction,na.rm=T)
 
-#if temperature increases from 1-8
-final1 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*1)
-final2 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*2)
-final3 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*3)
-final4 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*4)
-final5 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*5)
-final6 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*6)
-final7 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7)
-final8 <- exp((summary(mod3)$coefficients[1,1]) + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*8)
+#if temperature increases from 1-8, here 17 Tg/yr is n2o at current condition
+#here fraction is fraction of each grid's land cover
+final1 <- sum(17*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*1),na.rm=T)
+final2 <- sum(17*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*2),na.rm=T)
+final3 <- sum(17*fraction*exp(0+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*3),na.rm=T)
+final4 <- sum(17*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*4),na.rm=T)
+final5 <- sum(17*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*5),na.rm=T)
+final6 <- sum(17*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*6),na.rm=T)
+final7 <- sum(17*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7),na.rm=T)
+final8 <- sum(17*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*8),na.rm=T)
 
-response_n2o <- c(median(final1,na.rm=T),median(final2,na.rm=T),median(final3,na.rm=T),median(final4,na.rm=T),
-  median(final5,na.rm=T),median(final6,na.rm=T),median(final7,na.rm=T),median(final8,na.rm=T))
+response_n2o <- c(final1,final2,final3,final4,final5,final6,final7,final8)
 
 final_dt <- as.data.frame(cbind(response_n2o,c(1:8)))
 names(final_dt) <- c("response","dT")
-final_dt$response <- final_dt$response*17 #average Tg/yr
-final_dt <- rbind(final_dt,c(17,0))
+final_dt$response <- final_dt$response
+final_dt <- rbind(c(17,0),final_dt)
 plot(response~dT,final_dt)
 summary(lm(response~dT,final_dt))
-
+final_dt
 ggplot(final_dt,aes(x=dT,y=response))+geom_point()+ylab("Global N2O emission (Tg N/yr)")
 
-final_n2o_dT <- as.data.frame(cbind(orgc_df[,c("lon","lat")],final4))
-names(final_n2o_dT) <- c("lon","lat","n2o_e_a")
-plot_map3(final_n2o_dT)
+summary(lm(response~-1+dT,final_dt))
+
+#version 2: 
+#value is 6.9718Tg/yr/K
+#co2, ch4 and n2o values using mean value at 2016,https://www.eea.europa.eu/data-and-maps/daviz/atmospheric-concentration-of-carbon-dioxide-4#tab-chart_5_filters=%7B%22rowFilters%22%3A%7B%7D%3B%22columnFilters%22%3A%7B%22pre_config_polutant%22%3A%5B%22CH4%20(ppb)%22%5D%7D%7D
+#constant values a3,b3,c3, using value from liu et al. 2022
+sqrt(6.9718)*(((-8)*10^(-6))*402.88+
+    ((4.2)*10^(-6))*329.29+
+    ((-4.9)*10^(-6))*1842.4+0.117)
+
+#if assuming further T increase is just 2 degrees
+(final_dt$response[final_dt$dT==2]-final_dt$response[final_dt$dT==0])/2
+sqrt(3.710806)*(((-8)*10^(-6))*402.88+
+                ((4.2)*10^(-6))*329.29+
+                ((-4.9)*10^(-6))*1842.4+0.117)
+
