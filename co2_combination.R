@@ -150,7 +150,7 @@ names(df1) <- c("ref","location","n_amb","n_elv","n_site","n2o_amb",
                 "n2o_elv","co2_amb","co2_elv","dco2","duration","pft","logr",
                 "weight","group","method","species","Nfer","other","latitude","longitude","lat","lon","comments","days")
 
-df1$Nfer <- as.numeric(df1$Nfer)
+df1$Nfer <- as.numeric(df1$Nfer)*10 #convert g/m2 to kg/ha
 df1$co2_amb <- as.numeric(df1$co2_amb)
 df1$co2_elv <- as.numeric(df1$co2_elv)
 df1$paper_logr <- df1$logr 
@@ -340,7 +340,7 @@ names(df2) <- c("ref","location","n_amb","n_elv","n_site","n2o_amb",
                 "n2o_elv","dT","duration","pft","logr",
                 "weight","group","species","Nfer","other","latitude","longitude","lat","lon","comments","days")
 
-df2$Nfer <- as.numeric(df2$Nfer)
+df2$Nfer <- as.numeric(df2$Nfer)*10 #convert g/m2 to kg/ha
 
 df2$logr <- log(df2$n2o_elv/df2$n2o_amb)
 
@@ -505,31 +505,68 @@ fraction <- conversion/aa
 sum(fraction,na.rm=T)
 
 #here fraction is fraction of each grid's land cover
-final1 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*1),na.rm=T)
-final2 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*2),na.rm=T)
-final3 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*3),na.rm=T)
-final4 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*4),na.rm=T)
-final5 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*5),na.rm=T)
-final6 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*6),na.rm=T)
-final7 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7),na.rm=T)
-final8 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*8),na.rm=T)
+#value using 2016's value
 
-response_n2o <- c(final1,final2,final3,final4,final5,final6,final7,final8)
+#without intercept term, values are
+final1 <- sum(329.29*fraction*exp(0+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*0.39),na.rm=T)
+final2 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*3.95),na.rm=T)
+final3 <- sum(329.29*fraction*exp(0+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7.5),na.rm=T)
 
-final_dt <- as.data.frame(cbind(response_n2o,c(1:8)))
+response_n2o <- c(final1,final2,final3)
+
+final_dt <- as.data.frame(cbind(response_n2o,c(0.39,3.95,7.5)))
 names(final_dt) <- c("response","dT")
 final_dt$response <- final_dt$response
 final_dt <- rbind(c(329.2900,0),final_dt)
 ggplot(final_dt,aes(x=dT,y=response))+geom_point()+ylab("N2O in ppb")
 
 fN<-function(N,N0,C_mean,M_mean,N_mean){(-8.0*10^(-6)*C_mean+4.2*10^(-6)*N_mean-4.9*10^(-6)*M_mean+0.117)*(sqrt(N)-sqrt(N0))}
-fN_dT1 <-fN(final_dt$response[final_dt$dT==1],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==1]+329.2900)/2)/1
-fN_dT2 <-fN(final_dt$response[final_dt$dT==2],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==2]+329.2900)/2)/2
-fN_dT3 <-fN(final_dt$response[final_dt$dT==3],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==3]+329.2900)/2)/3
-fN_dT4 <-fN(final_dt$response[final_dt$dT==4],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==4]+329.2900)/2)/4
-fN_dT5 <-fN(final_dt$response[final_dt$dT==5],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==5]+329.2900)/2)/5
-fN_dT6 <-fN(final_dt$response[final_dt$dT==6],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==6]+329.2900)/2)/6
-fN_dT7 <-fN(final_dt$response[final_dt$dT==7],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==7]+329.2900)/2)/7
-fN_dT8 <-fN(final_dt$response[final_dt$dT==8],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==8]+329.2900)/2)/8
-final_dt$RN <- c(0,fN_dT1,fN_dT2,fN_dT3,fN_dT4,fN_dT5,fN_dT5,fN_dT7,fN_dT8)
-final_dt
+
+fN_dT3 <-fN(final_dt$response[final_dt$dT==7.50],
+            final_dt$response[final_dt$dT==0.39],
+            402.88,1842.4,
+            (final_dt$response[final_dt$dT==7.50]+final_dt$response[final_dt$dT==0.39])/2)/(7.50-0.39)
+fN_dT3 # 0.16
+
+#with intercept term, values are
+final1 <- sum(329.29*fraction*exp(summary(mod3)$coefficients[1,1]+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*0.39),na.rm=T)
+final2 <- sum(329.29*fraction*exp(summary(mod3)$coefficients[1,1] + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*3.95),na.rm=T)
+final3 <- sum(329.29*fraction*exp(summary(mod3)$coefficients[1,1]+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7.5),na.rm=T)
+
+response_n2o <- c(final1,final2,final3)
+
+final_dt <- as.data.frame(cbind(response_n2o,c(0.39,3.95,7.5)))
+names(final_dt) <- c("response","dT")
+final_dt$response <- final_dt$response
+final_dt <- rbind(c(329.2900,0),final_dt)
+ggplot(final_dt,aes(x=dT,y=response))+geom_point()+ylab("N2O in ppb")
+
+fN<-function(N,N0,C_mean,M_mean,N_mean){(-8.0*10^(-6)*C_mean+4.2*10^(-6)*N_mean-4.9*10^(-6)*M_mean+0.117)*(sqrt(N)-sqrt(N0))}
+
+fN_dT3 <-fN(final_dt$response[final_dt$dT==7.50],
+            final_dt$response[final_dt$dT==0.39],
+            402.88,1842.4,
+            (final_dt$response[final_dt$dT==7.50]+final_dt$response[final_dt$dT==0.39])/2)/(7.50-0.39)
+fN_dT3 # 0.12
+
+#co2 feedback
+#value using 2016 value: https://www.eea.europa.eu/data-and-maps/daviz/atmospheric-concentration-of-carbon-dioxide-5#tab-chart_5_filters=%7B%22rowFilters%22%3A%7B%7D%3B%22columnFilters%22%3A%7B%22pre_config_polutant%22%3A%5B%22CO2%20(ppm)%22%5D%7D%7D
+nfer_nc <- read_nc_onefile("~/data/nimpl_sofun_inputs/map/Final_ncfile/nfer.nc")#unit g/m2
+nfer_df <- as.data.frame(nc_to_df(nfer_nc, varnam = "nfer"))
+summary(nfer_df)
+PPFD_total_nc <- read_nc_onefile("~/data/nimpl_sofun_inputs/map/Final_ncfile/PPFD_total.nc")
+PPFD_total_df <- as.data.frame(nc_to_df(PPFD_total_nc, varnam = "PPFD_total"))
+summary(PPFD_total_df)
+
+#*10 #convert unit from g/m2 to kg/ha
+
+#without intercept term, values are
+final1 <- sum(329.29*fraction*exp(0+ summary(mod1)$coefficients[2,1]*log(416/380)+
+                                    summary(mod1)$coefficients[3,1]*sqrt(nfer_df$nfer)+
+                                    summary(mod1)$coefficients[4,1]*log(PPFD_total_df$PPFD_total)),na.rm=T)
+final1
+summary(mod1)
+aa <- exp(0+ summary(mod1)$coefficients[2,1]*log(416/380)+
+            summary(mod1)$coefficients[3,1]*sqrt(nfer_df$nfer)+
+            summary(mod1)$coefficients[4,1]*log(PPFD_total_df$PPFD_total))
+summary(aa)
