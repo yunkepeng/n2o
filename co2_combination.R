@@ -533,26 +533,3 @@ fN_dT7 <-fN(final_dt$response[final_dt$dT==7],329.2900,402.88,1842.4,(final_dt$r
 fN_dT8 <-fN(final_dt$response[final_dt$dT==8],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==8]+329.2900)/2)/8
 final_dt$RN <- c(0,fN_dT1,fN_dT2,fN_dT3,fN_dT4,fN_dT5,fN_dT5,fN_dT7,fN_dT8)
 final_dt
-
-final_dt$err_dT <- 0.1
-final_dt$err_RN <- 0.12
-
-#value of gains
-library(deming)
-fit<-deming(data=final_dt[2:9,],
-            RN~dT-1,xstd=err_dT,ystd=err_RN);print(fit);
-fit[["coefficients"]][2]
-lamda <- 3.5/4
-fit[["coefficients"]][2]*lamda
-#uncertainty of n2o at that year: https://gml.noaa.gov/webdata/ccgg/trends/n2o/n2o_annmean_gl.txt
-#0.12
-0.2446299*lamda
-
-#get value of ea
-#ea <- sum(fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*1),na.rm=T)
-#uncertainty_a <- sigma(mod3)
-#uncertainty_ea <- ea*uncertainty_a
-#n2o_a <-329.2900
-#uncertainty_n2o_a <- 0.12
-#uncertainty_n2o_e <- ea*n2o_a*
-#  sqrt((uncertainty_n2o_a/n2o_a)^2 + (uncertainty_ea/ea)^2)
