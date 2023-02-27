@@ -504,41 +504,55 @@ aa <- sum(conversion,na.rm=T)
 fraction <- conversion/aa
 sum(fraction,na.rm=T)
 
-#if temperature increases from 1-8, here 17 Tg/yr is n2o at current condition
 #here fraction is fraction of each grid's land cover
-final1 <- sum(17*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*1),na.rm=T)
-final2 <- sum(17*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*2),na.rm=T)
-final3 <- sum(17*fraction*exp(0+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*3),na.rm=T)
-final4 <- sum(17*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*4),na.rm=T)
-final5 <- sum(17*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*5),na.rm=T)
-final6 <- sum(17*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*6),na.rm=T)
-final7 <- sum(17*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7),na.rm=T)
-final8 <- sum(17*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*8),na.rm=T)
+final1 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*1),na.rm=T)
+final2 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*2),na.rm=T)
+final3 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*3),na.rm=T)
+final4 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*4),na.rm=T)
+final5 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*5),na.rm=T)
+final6 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*6),na.rm=T)
+final7 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7),na.rm=T)
+final8 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*8),na.rm=T)
 
 response_n2o <- c(final1,final2,final3,final4,final5,final6,final7,final8)
 
 final_dt <- as.data.frame(cbind(response_n2o,c(1:8)))
 names(final_dt) <- c("response","dT")
 final_dt$response <- final_dt$response
-final_dt <- rbind(c(17,0),final_dt)
-plot(response~dT,final_dt)
-summary(lm(response~dT,final_dt))
+final_dt <- rbind(c(329.2900,0),final_dt)
+ggplot(final_dt,aes(x=dT,y=response))+geom_point()+ylab("N2O in ppb")
+
+fN<-function(N,N0,C_mean,M_mean,N_mean){(-8.0*10^(-6)*C_mean+4.2*10^(-6)*N_mean-4.9*10^(-6)*M_mean+0.117)*(sqrt(N)-sqrt(N0))}
+fN_dT1 <-fN(final_dt$response[final_dt$dT==1],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==1]+329.2900)/2)/1
+fN_dT2 <-fN(final_dt$response[final_dt$dT==2],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==2]+329.2900)/2)/2
+fN_dT3 <-fN(final_dt$response[final_dt$dT==3],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==3]+329.2900)/2)/3
+fN_dT4 <-fN(final_dt$response[final_dt$dT==4],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==4]+329.2900)/2)/4
+fN_dT5 <-fN(final_dt$response[final_dt$dT==5],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==5]+329.2900)/2)/5
+fN_dT6 <-fN(final_dt$response[final_dt$dT==6],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==6]+329.2900)/2)/6
+fN_dT7 <-fN(final_dt$response[final_dt$dT==7],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==7]+329.2900)/2)/7
+fN_dT8 <-fN(final_dt$response[final_dt$dT==8],329.2900,402.88,1842.4,(final_dt$response[final_dt$dT==8]+329.2900)/2)/8
+final_dt$RN <- c(0,fN_dT1,fN_dT2,fN_dT3,fN_dT4,fN_dT5,fN_dT5,fN_dT7,fN_dT8)
 final_dt
-ggplot(final_dt,aes(x=dT,y=response))+geom_point()+ylab("Global N2O emission (Tg N/yr)")
 
-summary(lm(response~-1+dT,final_dt))
+final_dt$err_dT <- 0.1
+final_dt$err_RN <- 0.12
 
-#version 2: 
-#value is 6.9718Tg/yr/K
-#co2, ch4 and n2o values using mean value at 2016,https://www.eea.europa.eu/data-and-maps/daviz/atmospheric-concentration-of-carbon-dioxide-4#tab-chart_5_filters=%7B%22rowFilters%22%3A%7B%7D%3B%22columnFilters%22%3A%7B%22pre_config_polutant%22%3A%5B%22CH4%20(ppb)%22%5D%7D%7D
-#constant values a3,b3,c3, using value from liu et al. 2022
-sqrt(6.9718)*(((-8)*10^(-6))*402.88+
-    ((4.2)*10^(-6))*329.29+
-    ((-4.9)*10^(-6))*1842.4+0.117)
+#value of gains
+library(deming)
+fit<-deming(data=final_dt[2:9,],
+            RN~dT-1,xstd=err_dT,ystd=err_RN);print(fit);
+fit[["coefficients"]][2]
+lamda <- 3.5/4
+fit[["coefficients"]][2]*lamda
+#uncertainty of n2o at that year: https://gml.noaa.gov/webdata/ccgg/trends/n2o/n2o_annmean_gl.txt
+#0.12
+0.2446299*lamda
 
-#if assuming further T increase is just 2 degrees
-(final_dt$response[final_dt$dT==2]-final_dt$response[final_dt$dT==0])/2
-sqrt(3.710806)*(((-8)*10^(-6))*402.88+
-                ((4.2)*10^(-6))*329.29+
-                ((-4.9)*10^(-6))*1842.4+0.117)
-
+#get value of ea
+#ea <- sum(fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*1),na.rm=T)
+#uncertainty_a <- sigma(mod3)
+#uncertainty_ea <- ea*uncertainty_a
+#n2o_a <-329.2900
+#uncertainty_n2o_a <- 0.12
+#uncertainty_n2o_e <- ea*n2o_a*
+#  sqrt((uncertainty_n2o_a/n2o_a)^2 + (uncertainty_ea/ea)^2)
