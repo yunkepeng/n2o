@@ -1,4 +1,5 @@
 #library(tidyverse)
+library(smatr)
 library(dplyr)
 library(maps)
 library(rworldmap)
@@ -45,10 +46,10 @@ liao_field2<- liao_field[,c("Ref","Study.area","Year","Latitude","Longitude","N.
                             "NH4...mg.kg.1.","pH","SOC..g.kg.1.","Ecosystem.types","Soil.moisture....",
                             "AOA..copy.numbers.g.1.dry.soil.","AOB..copy.numbers.g.1.dry.soil.","nirS...copy.numbers.g.1.dry.soil.",
                             "nirK...copy.numbers.g.1.dry.soil.","nosZ...copy.numbers.g.1.dry.soil.",
-                            "Bulk.density..g.cm.3.")]
+                            "Bulk.density..g.cm.3.","WFPS....")]
 names(liao_field2) <- c("ref","site","year","lat","lon","Nfer_kgha",
                         "z","n2o_ugm2h","totaln_gkg","no3_mgkg","nh4_mgkg","pH","soc_gkg","pft","obs_moisture",
-                        "AOA","AOB","nirS","nirK","nosZ","bulk_density")
+                        "AOA","AOB","nirS","nirK","nosZ","bulk_density","wfps")
 #set all value = -9999 to NA
 liao_field2[liao_field2 == -9999] <- NA
 
@@ -499,7 +500,6 @@ visreg_ggplot <- function(obj,var_name,color1,color2,xlab_name,ylab_name){
   return(final1)
 }
 
-
 g1 <- visreg_ggplot(fits_tg,"Tg_a","black","red","Tg (°C)","ln N2O (ug/m2/h)")
 g1
 g2 <- visreg_ggplot(fits_moisture,"obs_moisture","black","red","Soil moisture"," ")
@@ -524,17 +524,16 @@ forest_compare2 <- merge(forest_compare,pred_forest_cover,
 nrow(subset(forest_compare2,forest_cover>=0.8))/nrow(forest_compare2)
 forest_compare3 <-subset(forest_compare2,forest_cover>=0.8)
 forest_compare3$obs_n2o <- forest_compare3$n2o_ugm2h
-q1 <- analyse_modobs2(forest_compare3,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg+
-  theme(axis.text=element_text(size=15),axis.title=element_text(size=15),
-        plot.subtitle=element_text(size=15))+xlab("Predicted Forest N2O (ug/m2/h)")+ylab("Measured Forest N2O (ug/m2/h)")
-
 theilsen(obs_n2o~pred_n2o,forest_compare3)
-
 forest_compare3$log_obs_n2o <- log(forest_compare3$obs_n2o)
 forest_compare3$log_pred_n2o <- log(forest_compare3$pred_n2o)
-#log
-analyse_modobs2(forest_compare3,"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg +
-  theme(axis.text=element_text(size=20),axis.title=element_text(size=20), plot.subtitle=element_text(size=20))
+
+q1 <- analyse_modobs2(forest_compare3,"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg+
+  theme(axis.text=element_text(size=15),axis.title=element_text(size=15),
+        plot.subtitle=element_text(size=15))+xlab("Predicted ln Forest N2O (ug/m2/h)")+ylab("Measured ln Forest N2O (ug/m2/h)")
+#slope 0.56
+B1_sma(data = na.omit(forest_compare3[,c("log_obs_n2o","log_pred_n2o")]),
+       obs=log_obs_n2o,pred=log_pred_n2o)
 
 
 #grassland - check rep
@@ -632,17 +631,17 @@ grassland3_compare <- merge(grassland2_field,predict_grassland_n2o,
 
 summary(grassland3_compare)
 grassland3_compare$obs_n2o <- grassland3_compare$n2o_ugm2h
-q2 <- analyse_modobs2(grassland3_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg +
-  theme(axis.text=element_text(size=15),axis.title=element_text(size=15),
-        plot.subtitle=element_text(size=15))+xlab("Predicted Grassland N2O (ug/m2/h)")+ylab("Measured Grassland N2O (ug/m2/h)")
-
 theilsen(obs_n2o~pred_n2o,grassland3_compare)
 
 grassland3_compare$log_obs_n2o <- log(grassland3_compare$obs_n2o)
 grassland3_compare$log_pred_n2o <- log(grassland3_compare$pred_n2o)
-#log
-analyse_modobs2(grassland3_compare,"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg +
-  theme(axis.text=element_text(size=20),axis.title=element_text(size=20), plot.subtitle=element_text(size=20))
+
+q2 <- analyse_modobs2(grassland3_compare,"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg +
+  theme(axis.text=element_text(size=15),axis.title=element_text(size=15),
+        plot.subtitle=element_text(size=15))+xlab("ln Predicted Grassland N2O (ug/m2/h)")+ylab("ln Measured Grassland N2O (ug/m2/h)")
+
+sma(log_obs_n2o~log_pred_n2o,data = grassland3_compare)
+
 
 #finally cropland
 cropland <- subset(all_n2o_df,pft=="cropland"|pft=="plantation"|pft=="fallow"|pft=="bare")
@@ -813,17 +812,16 @@ cropland3_compare <- merge(cropland2_liao,predict_cropland_n2o,
 
 summary(cropland3_compare)
 cropland3_compare$obs_n2o <- cropland3_compare$n2o_ugm2h
-q3 <- analyse_modobs2(cropland3_compare,"pred_n2o","obs_n2o", type = "points",relative=TRUE)$gg +
-  theme(axis.text=element_text(size=15),axis.title=element_text(size=15),
-        plot.subtitle=element_text(size=15))+xlab("Predicted Cropland N2O (ug/m2/h)")+ylab("Measured Cropland N2O (ug/m2/h)")
 
 theilsen(obs_n2o~pred_n2o,cropland3_compare)
-
 cropland3_compare$log_obs_n2o <- log(cropland3_compare$obs_n2o)
 cropland3_compare$log_pred_n2o <- log(cropland3_compare$pred_n2o)
-#log
-analyse_modobs2(cropland3_compare,"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg +
-  theme(axis.text=element_text(size=20),axis.title=element_text(size=20), plot.subtitle=element_text(size=20))
+
+q3 <- analyse_modobs2(cropland3_compare,"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg +
+  theme(axis.text=element_text(size=15),axis.title=element_text(size=15),
+        plot.subtitle=element_text(size=15))+xlab("Predicted ln Cropland N2O (ug/m2/h)")+ylab("Measured ln Cropland N2O (ug/m2/h)")
+
+sma(log_obs_n2o~log_pred_n2o,data = cropland3_compare)
 
 #emission factor
 cropland_EF <- subset(cropland,is.na(EF)==FALSE)
@@ -915,3 +913,28 @@ summary(EF_output)
 dim(EF_output)
 #csvfile <- paste("~/data/n2o_Yunke/forcing/lpx_sites_EF_Cui.csv")
 #write_csv(EF_output, path = csvfile)
+
+#plot maps
+test1$pft <- "forest"
+test2$pft <- "grassland"
+test3$pft <- "cropland"
+
+newmap <- getMap(resolution = "low")
+plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
+test1 <- (na.omit(forest2_field[,c("lon","lat","site_a","n2o_a","orgc_a","CNrt_a","ndep_a",
+                                   "obs_moisture","Tg_a",
+                                   "PPFD_total_a","PPFD_a",
+                                   "min_fapar","max_fapar","mean_fapar","max_min_fapar","max_mean_fapar")]))
+test2 <- (na.omit(grassland2_field[,c("lon","lat","site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","ndep_a",
+                                      "Tg_a",
+                                      "PPFD_total_a","PPFD_a",
+                                      "min_fapar","max_fapar","mean_fapar")]))
+test3 <- (na.omit(cropland2_liao[,c("lon","lat","site_a","n2o_a","sqrt_Nfer_kgha","orgc_a","ndep_a",
+                                    "vpd_a","Tg_a",
+                                    "PPFD_total_a",
+                                    "min_fapar","max_fapar","mean_fapar")]))
+
+
+points(test1$lon,test1$lat, col="green", pch=16,cex=1)
+points(test2$lon,test2$lat, col="yellow", pch=16,cex=1)
+points(test3$lon,test3$lat, col="brown", pch=16,cex=1)
