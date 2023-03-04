@@ -10,6 +10,7 @@ source("/Users/yunpeng/yunkepeng/CNuptake_MS/R/stepwise_lm.R")
 library(raster)
 devtools::load_all("/Users/yunpeng/yunkepeng/latest_packages/rbeni/") 
 library(cowplot)
+library(plotrix)
 stepwise <- function(df_input,target_var){
   #-----------------------------------------------------------------------
   # Input:  whole dataframe and target variable
@@ -505,53 +506,21 @@ sum(fraction,na.rm=T)
 
 #here fraction is fraction of each grid's land cover
 #value using 2016's value: https://www.eea.europa.eu/data-and-maps/daviz/atmospheric-concentration-of-carbon-dioxide-5#tab-chart_5_filters=%7B%22rowFilters%22%3A%7B%7D%3B%22columnFilters%22%3A%7B%22pre_config_polutant%22%3A%5B%22CH4%20(ppb)%22%5D%7D%7D
-
+#n2o_a = 329.29 (0.12)
 #without intercept term, values are
-final0 <- sum(329.29*fraction*exp(0+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*0),na.rm=T)
+#below is when dT = 0.39 and 7.5
 final1 <- sum(329.29*fraction*exp(0+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*0.39),na.rm=T)
-final2 <- sum(329.29*fraction*exp(0 + (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*3.95),na.rm=T)
 final3 <- sum(329.29*fraction*exp(0+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7.5),na.rm=T)
 
-response_n2o <- c(final1,final2,final3)
-
-final_dt <- as.data.frame(cbind(response_n2o,c(0.39,3.95,7.5)))
-names(final_dt) <- c("response","dT")
-final_dt$response <- final_dt$response
-final_dt <- rbind(c(final0,0),final_dt)
-ggplot(final_dt,aes(x=dT,y=response))+geom_point()+ylab("N2O in ppb")
-final_dt
-
-#calculate N2Oe uncertainty when dT = 0.39:
-#uncertainty model by only considering slope and S.E.
-
+#calculate N2Oe uncertainty
+#after error propogation: ln (n2o-e/n2o-a) = model
+#uncertainty n2o_e =sqrt(delta-model^2 + (delta-n2o_a/ n2o_a)^2)
 uncertainty_model <- sqrt(((summary(mod3)$coefficients[2,1])^2 *
                             summary(mod3)$coefficients[2,2]^2)+
                             ( (summary(mod3)$coefficients[3,1])^2 *
                                summary(mod3)$coefficients[3,2]^2))
-#when dT=0, calculate uncertainty of N2Oe
-n2o_e_n2o_a <- final_dt$response[final_dt$dT==0]/329.2900
-uncertainty_n2o_e_n2o_a <- uncertainty_model*n2o_e_n2o_a
-uncertainty_n2o_e0 <- final_dt$response[final_dt$dT==0]*
-  sqrt((0.12/329.2900)^2+(uncertainty_n2o_e_n2o_a/n2o_e_n2o_a)^2)
-n2o_e0 <- final_dt$response[final_dt$dT==0]
-
-#when dT=0.39
-#ln (N2Oe / N2Oa) = model, so uncertainty of (N2Oe / N2Oa) = N2Oe/N2Oa * uncertainty_model
-n2o_e_n2o_a <- final_dt$response[final_dt$dT==0.39]/final_dt$response[final_dt$dT==0]
-uncertainty_n2o_e_n2o_a <- uncertainty_model*n2o_e_n2o_a
-#uncertainty of n2o at that year (0.12): https://gml.noaa.gov/webdata/ccgg/trends/n2o/n2o_annmean_gl.txt
-#then: n2o_e <- n2o_e/N2O_a * N2O_a: use this's error propogation to calculate uncertainty of n2o_e
-uncertainty_n2o_e1 <- final_dt$response[final_dt$dT==0.39]*sqrt((uncertainty_n2o_e0/n2o_e0)^2+(uncertainty_n2o_e_n2o_a/n2o_e_n2o_a)^2)
-
-#when dT=3.95
-n2o_e_n2o_a<- final_dt$response[final_dt$dT==3.95]/final_dt$response[final_dt$dT==0]
-uncertainty_n2o_e_n2o_a <- uncertainty_model*n2o_e_n2o_a
-uncertainty_n2o_e2 <- final_dt$response[final_dt$dT==3.95]*sqrt((uncertainty_n2o_e0/n2o_e0)^2+(uncertainty_n2o_e_n2o_a/n2o_e_n2o_a)^2)
-
-#when dT=7.5
-n2o_e_n2o_a<- final_dt$response[final_dt$dT==7.5]/final_dt$response[final_dt$dT==0]
-uncertainty_n2o_e_n2o_a <- uncertainty_model*n2o_e_n2o_a
-uncertainty_n2o_e3 <- final_dt$response[final_dt$dT==7.5]*sqrt((uncertainty_n2o_e0/n2o_e0)^2+(uncertainty_n2o_e_n2o_a/n2o_e_n2o_a)^2)
+uncertainty_fN <- sqrt(uncertainty_model^2+ (0.12/329.29)^2)
+#here uncertainty_fN presents percentage of uncertainty -> will multuply with n2o_e to get actual uncertainty
 
 fN<-function(N,N0,C_mean,M_mean,N_mean){(-8.0*10^(-6)*C_mean+4.2*10^(-6)*N_mean-4.9*10^(-6)*M_mean+0.117)*(sqrt(N)-sqrt(N0))}
 
@@ -561,55 +530,11 @@ err_fN<-function(N,N0,C_mean,M_mean,N_mean,err_N,err_N0){
           DN0(N,N0,C_mean,M_mean,N_mean)^2*err_N0^2 )
 }
 
-err_rn1 <- err_fN(final_dt$response[final_dt$dT==0.39],
-       final_dt$response[final_dt$dT==0],
-       402.88,1842.4,
-       (final_dt$response[final_dt$dT==0.39]+final_dt$response[final_dt$dT==0])/2,
-       uncertainty_n2o_e1,uncertainty_n2o_e0)
-
-err_rn2 <- err_fN(final_dt$response[final_dt$dT==3.95],
-                  final_dt$response[final_dt$dT==0],
-                  402.88,1842.4,
-                  (final_dt$response[final_dt$dT==3.95]+final_dt$response[final_dt$dT==0])/2,
-                  uncertainty_n2o_e2,uncertainty_n2o_e0)
-
-err_rn3 <- err_fN(final_dt$response[final_dt$dT==7.5],
-                  final_dt$response[final_dt$dT==0],
-                  402.88,1842.4,
-                  (final_dt$response[final_dt$dT==7.5]+final_dt$response[final_dt$dT==0])/2,
-                  uncertainty_n2o_e3,uncertainty_n2o_e0)
-
-fN_dT3_v1 <-fN(final_dt$response[final_dt$dT==0.39],
-            final_dt$response[final_dt$dT==0],
-            402.88,1842.4,
-            (final_dt$response[final_dt$dT==0.39]+final_dt$response[final_dt$dT==0])/2)
-
-fN_dT3_v2 <-fN(final_dt$response[final_dt$dT==3.95],
-               final_dt$response[final_dt$dT==0],
-               402.88,1842.4,
-               (final_dt$response[final_dt$dT==3.95]+final_dt$response[final_dt$dT==0])/2)
-
-fN_dT3_v3 <-fN(final_dt$response[final_dt$dT==7.50],
-               final_dt$response[final_dt$dT==0],
-               402.88,1842.4,
-               (final_dt$response[final_dt$dT==7.50]+final_dt$response[final_dt$dT==0])/2)
-
-rN <- c(fN_dT3_v1,fN_dT3_v2,fN_dT3_v3)
-error_rN <- c(err_rn1,err_rn2,err_rn3)
-dT <- c(0.39,3.95,7.5)
-data_warming <- as.data.frame(cbind(dT,rN,error_rN))
-mod_rN_warming <- (lm(rN~-1+dT,data=data_warming,weights=1/(error_rN^2)))#mark its citation
-#Remember to quote S.E. * 1.96 (for 95% CI)
-rN_value <- summary(mod_rN_warming)$coef[1,1]
-rN_SE_value <- summary(mod_rN_warming)$coef[1,2]
-rN_value;rN_SE_value*1.96
-
-ggplot(data_warming, aes(x=dT, y=rN)) + 
-  geom_errorbar(aes(ymin=rN-error_rN, ymax=rN+error_rN), 
-                colour="black", width=.1) +
-  geom_line( ) +
-  geom_point(size=3)
-
+#value and S.E.
+rN_value<- fN(final3,final1,402.88,1842.4,(final3+final1)/2)/(7.50-0.39)
+rN_value
+rN_SE_value<- err_fN(final3,final1,402.88,1842.4,(final3+final1)/2,final3*uncertainty_fN,final1*uncertainty_fN)/(7.50-0.39)
+rN_SE_value*1.96
 #value of gains - See Liu et al. SI (corrected version)
 lamda <- 0.875
 se_lamda <- 0.38/1.96
@@ -621,6 +546,28 @@ gains_uncertainty <- 1.96*sqrt(rN_value^2 * se_lamda^2 + lamda^2 * rN_SE_value^2
 gains_uncertainty
 
 #using LPX
+lpx <- read.csv("~/data/n2o_Yunke/forcing/eCO2_warming_LPX_total_n2o.csv")
+#assume n2o_a, again, is 329.29 (0.12)
+std.error(lpx$dT_0)
+std.error(lpx$dT_0.39)
+std.error(lpx$dT_7.5)
+
+final1_lpx <- 329.29*mean(lpx$dT_0.39)/mean(lpx$dT_0)
+final1_lpx_uncertainty <- sqrt((0.12/329.29)^2+(std.error(lpx$dT_0)/mean(lpx$dT_0))^2+(std.error(lpx$dT_0.39)/mean(lpx$dT_0.39))^2)
+final3_lpx <-329.29*mean(lpx$dT_7.5)/mean(lpx$dT_0)
+final3_lpx_uncertainty <- sqrt((0.12/329.29)^2+(std.error(lpx$dT_0)/mean(lpx$dT_0))^2+(std.error(lpx$dT_7.5)/mean(lpx$dT_7.5))^2)
+
+rN_value_lpx<- fN(final3_lpx,final1_lpx,402.88,1842.4,(final3_lpx+final1_lpx)/2)/(7.50-0.39)
+rN_value_lpx
+
+rN_SE_value_lpx <- err_fN(final3_lpx,final1_lpx,402.88,1842.4,(final3_lpx+final1_lpx)/2,final3_lpx_uncertainty,final1_lpx_uncertainty)/(7.50-0.39)
+rN_SE_value_lpx*1.96
+
+gains_lpx <- lamda*rN_value_lpx
+gains_lpx
+
+gains_uncertainty_lpx <- 1.96*sqrt(rN_value_lpx^2 * se_lamda^2 + lamda^2 * rN_SE_value_lpx^2)
+gains_uncertainty_lpx
 
 #co2 feedback
 #value using 2016 value: https://www.eea.europa.eu/data-and-maps/daviz/atmospheric-concentration-of-carbon-dioxide-5#tab-chart_5_filters=%7B%22rowFilters%22%3A%7B%7D%3B%22columnFilters%22%3A%7B%22pre_config_polutant%22%3A%5B%22CO2%20(ppm)%22%5D%7D%7D
@@ -632,59 +579,44 @@ PPFD_total_df <- as.data.frame(nc_to_df(PPFD_total_nc, varnam = "PPFD_total"))
 summary(PPFD_total_df)
 
 #with intercept term, values are
-final0 <- sum(318.91*fraction*exp(summary(mod1)$coefficients[1,1]+ 
-                                    summary(mod1)$coefficients[2,1]*log(380/380)+
+final1a <- sum(329.29*fraction*exp(0+ summary(mod1)$coefficients[2,1]*log(416/380)+
                                     summary(mod1)$coefficients[3,1]*sqrt(nfer_df$nfer*10)+
                                     summary(mod1)$coefficients[4,1]*log(PPFD_total_df$PPFD_total)),na.rm=T)
 
-final1 <- sum(318.91*fraction*exp(summary(mod1)$coefficients[1,1]+ 
-                                    summary(mod1)$coefficients[2,1]*log(416/380)+
+final3a <- sum(329.29*fraction*exp(0+ summary(mod1)$coefficients[2,1]*log(813/380)+
                                     summary(mod1)$coefficients[3,1]*sqrt(nfer_df$nfer*10)+
                                     summary(mod1)$coefficients[4,1]*log(PPFD_total_df$PPFD_total)),na.rm=T)
-final2 <- sum(318.91*fraction*exp(summary(mod1)$coefficients[1,1]+ 
-                                    summary(mod1)$coefficients[2,1]*log(582/380)+
-                                    summary(mod1)$coefficients[3,1]*sqrt(nfer_df$nfer*10)+
-                                    summary(mod1)$coefficients[4,1]*log(PPFD_total_df$PPFD_total)),na.rm=T)
+final1a
+final3a
 
-final3 <- sum(318.91*fraction*exp(summary(mod1)$coefficients[1,1]+ 
-                                    summary(mod1)$coefficients[2,1]*log(813/380)+
-                                    summary(mod1)$coefficients[3,1]*sqrt(nfer_df$nfer*10)+
-                                    summary(mod1)$coefficients[4,1]*log(PPFD_total_df$PPFD_total)),na.rm=T)
-final0
-final1
-final2
-final3
-
-response_n2o <- c(final1,final2,final3)
-
-final_co2 <- as.data.frame(cbind(response_n2o,c(416,582,813)))
-names(final_co2) <- c("response","co2")
-
-final_co2 <- rbind(c(final0,380),final_co2)
-ggplot(final_co2,aes(x=co2,y=response))+geom_point()+ylab("N2O in ppb")
-
-uncertainty_model <- sqrt(summary(mod1)$coefficients[1,1]^2 *
-                            summary(mod1)$coefficients[1,2]^2 +
-                            summary(mod1)$coefficients[2,1]^2 *
+uncertainty_model2 <- sqrt(summary(mod1)$coefficients[2,1]^2 *
                              summary(mod1)$coefficients[2,2]^2 +
                             summary(mod1)$coefficients[3,1]^2 *
                                 summary(mod1)$coefficients[3,2]^2+
                               summary(mod1)$coefficients[4,1]^2 *
                                   summary(mod1)$coefficients[4,2]^2)
+uncertainty_fN2 <- sqrt(uncertainty_model2^2+ (0.12/329.29)^2)
+uncertainty_fN2
 
-#when dT=0, calculate uncertainty of N2Oe
-n2o_e_n2o_a <- final_dt$response[final_dt$dT==0]/329.2900
-uncertainty_n2o_e_n2o_a <- uncertainty_model*n2o_e_n2o_a
-uncertainty_n2o_e0 <- final_dt$response[final_dt$dT==0]*
-  sqrt((0.12/329.2900)^2+(uncertainty_n2o_e_n2o_a/n2o_e_n2o_a)^2)
-n2o_e0 <- final_dt$response[final_dt$dT==0]
+#feedback value
+fN(final3a,final1a,(813+416)/2,1842.4,(final3a+final1a)/2)/(813-416)
 
-fN<-function(N,N0,C_mean,M_mean,N_mean){(-8.0*10^(-6)*C_mean+4.2*10^(-6)*N_mean-4.9*10^(-6)*M_mean+0.117)*(sqrt(N)-sqrt(N0))}
+1.96*err_fN(final3a,final1a,(813+416)/2,1842.4,(final3a+final1a)/2,final3a*uncertainty_fN2,final1a*uncertainty_fN2)/(813-416)
 
-fN1 <-fN(final_co2$response[final_co2$co2==416],
-            final_co2$response[final_co2$co2==380],
-            (380+416)/2,1842.4,
-            (final_co2$response[final_co2$co2==416]+final_co2$response[final_co2$co2==380])/2)
+#using LPX
+lpx <- read.csv("~/data/n2o_Yunke/forcing/eCO2_warming_LPX_total_n2o.csv")
+#assume n2o_a, again, is 329.29 (0.12)
+std.error(lpx$dT_0)
+std.error(lpx$eCO2_416)
+std.error(lpx$eCO2_813)
 
+final1_lpx_eCO2 <- 329.29*mean(lpx$eCO2_416)/mean(lpx$dT_0)
+final1_lpx_eCO2_uncertainty <- sqrt((0.12/329.29)^2+(std.error(lpx$dT_0)/mean(lpx$dT_0))^2+(std.error(lpx$eCO2_416)/mean(lpx$eCO2_416))^2)
+final3_lpx_eCO2 <-329.29*mean(lpx$eCO2_813)/mean(lpx$dT_0)
+final3_lpx_eCO2_uncertainty <- sqrt((0.12/329.29)^2+(std.error(lpx$dT_0)/mean(lpx$dT_0))^2+(std.error(lpx$eCO2_813)/mean(lpx$eCO2_813))^2)
 
+rN_value_eCO2_lpx<- fN(final3_lpx_eCO2,final1_lpx_eCO2,(813+416)/2,1842.4,(final3_lpx_eCO2+final1_lpx_eCO2)/2)/(813-416)
+rN_value_eCO2_lpx
+1.96*err_fN(final3_lpx_eCO2,final1_lpx_eCO2,(813+416)/2,1842.4,(final3_lpx_eCO2+final1_lpx_eCO2)/2,final3_lpx_eCO2_uncertainty,final1_lpx_eCO2_uncertainty)/(813-416)
 
+#try one more attempt without intercept
