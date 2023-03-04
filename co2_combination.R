@@ -534,7 +534,7 @@ err_fN<-function(N,N0,C_mean,M_mean,N_mean,err_N,err_N0){
 rN_value<- fN(final3,final1,402.88,1842.4,(final3+final1)/2)/(7.50-0.39)
 rN_value
 rN_SE_value<- err_fN(final3,final1,402.88,1842.4,(final3+final1)/2,final3*uncertainty_fN,final1*uncertainty_fN)/(7.50-0.39)
-rN_SE_value*1.96
+rN_SE_value
 #value of gains - See Liu et al. SI (corrected version)
 lamda <- 0.875
 se_lamda <- 0.38/1.96
@@ -601,7 +601,7 @@ uncertainty_fN2
 #feedback value
 fN(final3a,final1a,(813+416)/2,1842.4,(final3a+final1a)/2)/(813-416)
 
-1.96*err_fN(final3a,final1a,(813+416)/2,1842.4,(final3a+final1a)/2,final3a*uncertainty_fN2,final1a*uncertainty_fN2)/(813-416)
+err_fN(final3a,final1a,(813+416)/2,1842.4,(final3a+final1a)/2,final3a*uncertainty_fN2,final1a*uncertainty_fN2)/(813-416)
 
 #using LPX
 lpx <- read.csv("~/data/n2o_Yunke/forcing/eCO2_warming_LPX_total_n2o.csv")
@@ -617,6 +617,6 @@ final3_lpx_eCO2_uncertainty <- sqrt((0.12/329.29)^2+(std.error(lpx$dT_0)/mean(lp
 
 rN_value_eCO2_lpx<- fN(final3_lpx_eCO2,final1_lpx_eCO2,(813+416)/2,1842.4,(final3_lpx_eCO2+final1_lpx_eCO2)/2)/(813-416)
 rN_value_eCO2_lpx
-1.96*err_fN(final3_lpx_eCO2,final1_lpx_eCO2,(813+416)/2,1842.4,(final3_lpx_eCO2+final1_lpx_eCO2)/2,final3_lpx_eCO2_uncertainty,final1_lpx_eCO2_uncertainty)/(813-416)
+err_fN(final3_lpx_eCO2,final1_lpx_eCO2,(813+416)/2,1842.4,(final3_lpx_eCO2+final1_lpx_eCO2)/2,final3_lpx_eCO2_uncertainty,final1_lpx_eCO2_uncertainty)/(813-416)
 
 #try one more attempt without intercept
