@@ -509,16 +509,18 @@ sum(fraction,na.rm=T)
 #n2o_a = 329.29 (0.12)
 #without intercept term, values are
 #below is when dT = 0.39 and 7.5
-final1 <- sum(329.29*fraction*exp(0+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*0.39),na.rm=T)
-final3 <- sum(329.29*fraction*exp(0+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7.5),na.rm=T)
+final1 <- sum(329.29*fraction*exp((summary(mod3)$coefficients[1,1])+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*0.39),na.rm=T)
+final3 <- sum(329.29*fraction*exp((summary(mod3)$coefficients[1,1])+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7.5),na.rm=T)
 
 #calculate N2Oe uncertainty
 #after error propogation: ln (n2o-e/n2o-a) = model
 #uncertainty n2o_e =sqrt(delta-model^2 + (delta-n2o_a/ n2o_a)^2)
-uncertainty_model <- sqrt(((summary(mod3)$coefficients[2,1])^2 *
-                            summary(mod3)$coefficients[2,2]^2)+
+uncertainty_model <- sqrt(((summary(mod3)$coefficients[1,1])^2 *
+                             summary(mod3)$coefficients[1,2]^2+
+                             (summary(mod3)$coefficients[2,1])^2 *
+                             summary(mod3)$coefficients[2,2]^2)+
                             ( (summary(mod3)$coefficients[3,1])^2 *
-                               summary(mod3)$coefficients[3,2]^2))
+                                summary(mod3)$coefficients[3,2]^2))
 uncertainty_fN <- sqrt(uncertainty_model^2+ (0.12/329.29)^2)
 #here uncertainty_fN presents percentage of uncertainty -> will multuply with n2o_e to get actual uncertainty
 
@@ -542,7 +544,7 @@ se_lamda <- 0.38/1.96
 gains <- lamda*rN_value
 gains
 
-gains_uncertainty <- 1.96*sqrt(rN_value^2 * se_lamda^2 + lamda^2 * rN_SE_value^2)
+gains_uncertainty <- sqrt(rN_value^2 * se_lamda^2 + lamda^2 * rN_SE_value^2)
 gains_uncertainty
 
 #using LPX
@@ -578,7 +580,7 @@ PPFD_total_nc <- read_nc_onefile("~/data/nimpl_sofun_inputs/map/Final_ncfile/PPF
 PPFD_total_df <- as.data.frame(nc_to_df(PPFD_total_nc, varnam = "PPFD_total"))
 summary(PPFD_total_df)
 
-#with intercept term, values are
+#without intercept term, values are
 final1a <- sum(329.29*fraction*exp(0+ summary(mod1)$coefficients[2,1]*log(416/380)+
                                     summary(mod1)$coefficients[3,1]*sqrt(nfer_df$nfer*10)+
                                     summary(mod1)$coefficients[4,1]*log(PPFD_total_df$PPFD_total)),na.rm=T)
@@ -588,6 +590,8 @@ final3a <- sum(329.29*fraction*exp(0+ summary(mod1)$coefficients[2,1]*log(813/38
                                     summary(mod1)$coefficients[4,1]*log(PPFD_total_df$PPFD_total)),na.rm=T)
 final1a
 final3a
+#final1a*uncertainty_fN2
+#final3a*uncertainty_fN2
 
 uncertainty_model2 <- sqrt(summary(mod1)$coefficients[2,1]^2 *
                              summary(mod1)$coefficients[2,2]^2 +
@@ -599,9 +603,9 @@ uncertainty_fN2 <- sqrt(uncertainty_model2^2+ (0.12/329.29)^2)
 uncertainty_fN2
 
 #feedback value
-fN(final3a,final1a,(813+416)/2,1842.4,(final3a+final1a)/2)/(813-416)
+rN_value_eCO2<- fN(final3a,final1a,(813+416)/2,1842.4,(final3a+final1a)/2)/(813-416)
 
-err_fN(final3a,final1a,(813+416)/2,1842.4,(final3a+final1a)/2,final3a*uncertainty_fN2,final1a*uncertainty_fN2)/(813-416)
+rN_value_eCO2_se <- err_fN(final3a,final1a,(813+416)/2,1842.4,(final3a+final1a)/2,final3a*uncertainty_fN2,final1a*uncertainty_fN2)/(813-416)
 
 #using LPX
 lpx <- read.csv("~/data/n2o_Yunke/forcing/eCO2_warming_LPX_total_n2o.csv")
@@ -617,6 +621,22 @@ final3_lpx_eCO2_uncertainty <- sqrt((0.12/329.29)^2+(std.error(lpx$dT_0)/mean(lp
 
 rN_value_eCO2_lpx<- fN(final3_lpx_eCO2,final1_lpx_eCO2,(813+416)/2,1842.4,(final3_lpx_eCO2+final1_lpx_eCO2)/2)/(813-416)
 rN_value_eCO2_lpx
-err_fN(final3_lpx_eCO2,final1_lpx_eCO2,(813+416)/2,1842.4,(final3_lpx_eCO2+final1_lpx_eCO2)/2,final3_lpx_eCO2_uncertainty,final1_lpx_eCO2_uncertainty)/(813-416)
+rN_value_eCO2_lpx_se <- err_fN(final3_lpx_eCO2,final1_lpx_eCO2,(813+416)/2,1842.4,(final3_lpx_eCO2+final1_lpx_eCO2)/2,final3_lpx_eCO2_uncertainty,final1_lpx_eCO2_uncertainty)/(813-416)
 
-#try one more attempt without intercept
+#lamda of eCO2
+#quote from IPCC AR6:
+#The assessed ERF for a doubling of carbon dioxide compared to 1750 levels (3.93 ± 0.47 W m–2) is larger than in AR5
+lamda <- (560-280)/3.93
+lamda_se <- (560-280)*0.47/(3.93^2)
+
+gains_co2 <- lamda*rN_value_eCO2
+gains_co2
+
+gains_uncertainty <- 1.96*sqrt(rN_value_eCO2^2 * lamda_se^2 + lamda^2 * rN_value_eCO2_se^2)
+gains_uncertainty
+
+gains_co2_lpx <- lamda*rN_value_eCO2_lpx
+gains_co2_lpx
+
+gains_uncertainty_lpx <- 1.96*sqrt(rN_value_eCO2_lpx^2 * lamda_se^2 + lamda^2 * rN_value_eCO2_lpx_se^2)
+gains_uncertainty_lpx
