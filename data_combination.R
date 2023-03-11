@@ -176,9 +176,9 @@ summary(cui2_fallow)
 cui2_fallow$pft <- "fallow"
 
 #site distribution
-#newmap <- getMap(resolution = "low")
-#plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
-#points(site_record$lon,site_record$lat, col="red", pch=16,cex=1)
+newmap <- getMap(resolution = "low")
+plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
+points(site_record$lon,site_record$lat, col="red", pch=16,cex=1)
 
 #Xu-Ri not yet finished - since it is highly replicated to many sites
 

@@ -2,7 +2,6 @@ library(readr)
 library(ggplot2)
 source("/Users/yunpeng/yunkepeng/n2o_MS/R/analyse_modobs2.R")
 source("/Users/yunpeng/yunkepeng/n2o_MS/R/stepwise.R")
-source("/Users/yunpeng/yunkepeng/n2o_MS/R/stepwise_lm.R")
 source("/Users/yunpeng/yunkepeng/n2o_MS/R/calc_area.R")
 source("/Users/yunpeng/yunkepeng/n2o_MS/R/visreg_ggplot.R")
 source("/Users/yunpeng/yunkepeng/n2o_MS/R/read_nc_onefile.R")
@@ -14,7 +13,8 @@ library("PerformanceAnalytics")
 library(MuMIn)
 library(relaimpo)
 library(Deriv)
-
+library(rworldmap)
+library(maps)
 #1. read observation csv and output validation
 
 all_n2o_df <- read.csv("~/data/n2o_Yunke/final_obs_dataset/obs_field_dataset.csv")
@@ -50,34 +50,19 @@ all_n2o_df$sqrt_Nfer_kgha <- sqrt(all_n2o_df$Nfer_kgha)
 all_n2o_df$orgc_a <- log(all_n2o_df$ORGC)
 all_n2o_df$site_a <- (all_n2o_df$sitename)
 
-#forest dataset 
-#we have two choices:
-#one including observed moisture and Tg directly (according to literatures e.g. Liao et al. GCB) - but this will cause data numbers being less (because soil moisture measurements are less in parallel).
-#this choice yields the model's r2 as 0.19, which is great.
-forest_moisture_data <- na.omit(subset(all_n2o_df,pft=="forest")[,c("n2o_a","Tg_a","obs_moisture","site_a","lon","lat","z","pft")])
-dim(forest_moisture_data)
-mod1 <- (lmer(n2o_a~Tg_a+obs_moisture+(1|site_a),data=forest_moisture_data))
-summary(mod1)
-r.squaredGLMM(mod1)
-
-#another choice is to follow stepwise regression (but remove observed soil moisture to release more data, but we have vpd within here) - this overall, yields worse performance than above
-forest_data <- (na.omit(subset(all_n2o_df,pft=="forest")[,c("site_a","n2o_a","orgc_a","vpd_a",
-                                                            "Tg_a","PPFD_total_a","ndep_a","sqrt_Nfer_kgha",
-                                                            "min_fapar","max_fapar")]))
-
+#forest dataset - the best model should be fitted by Tg and moisture
+forest_data <- subset(all_n2o_df,pft=="forest")[,c("n2o_a","site_a","obs_moisture","orgc_a","Tg_a","PPFD_total_a","ndep_a","min_fapar","max_fapar")]
 stepwise(forest_data,"n2o_a")[[1]]
 stepwise(forest_data,"n2o_a")[[2]]
-stepwise(forest_data,"n2o_a")[[3]]
-
-summary(lmer(n2o_a~Tg_a+vpd_a+orgc_a+sqrt_Nfer_kgha+(1|site_a),forest_data))
-r.squaredGLMM(lmer(n2o_a~Tg_a+vpd_a+orgc_a+sqrt_Nfer_kgha+(1|site_a),forest_data))
-
-#therefore, we use mod1 - n2o predicted by Tg and moisture
+dim(forest_data)
+mod1 <- (lmer(n2o_a~Tg_a+obs_moisture+(1|site_a),data=forest_data))
+summary(mod1)
+r.squaredGLMM(mod1)
 
 #merged data with LPX - using the same database to the model - and make sure it includes available pred_n2o (that not account for forest cover <80%)
 forest_moisture_data_forLPX <- na.omit(subset(all_n2o_df,pft=="forest")[,c("n2o_a","pred_n2o","Tg_a","obs_moisture","site_a","lon","lat","z","pft")])
 
-forest_data_sitemean <- unique(forest_moisture_data[,c("lon","lat","z","pft")])
+forest_data_sitemean <- unique(forest_moisture_data_forLPX[,c("lon","lat","z","pft")])
 
 lpx_forest_n2o <- subset(read.csv("~/data/n2o_Yunke/final_forcing/LPX_annual_n2o.csv"),pft=="forest")
 lpx_forest_moisture <- subset(read.csv("~/data/n2o_Yunke/final_forcing/LPX_annual_moisture.csv"),pft=="forest")
@@ -114,7 +99,7 @@ visreg_ggplot <- function(obj,var_name,color1,color2,xlab_name,ylab_name){
   return(final1)
 }
 
-g1 <- visreg_ggplot(fits_tg,"Tg_a","black","red","Tg (°C)","ln N2O (ug/m2/h)")
+g1 <- visreg_ggplot(fits_tg,"Tg_a","black","red",~paste(T[g]," (°C)"),~paste("Forest ln ", N[2], O, " (", mu,"g m"^-2,"h"^-1,")"))
 g1
 g2 <- visreg_ggplot(fits_moisture,"obs_moisture","black","red","Soil moisture"," ")
 g2
@@ -159,7 +144,7 @@ mod4_nfer <- visreg(mod4,"sqrt_Nfer_kgha",type="contrast");mod4_minfapar <- visr
 fits_nfer <- dplyr::bind_rows(mutate(mod3_nfer$fit, plt = "Measurement"),mutate(mod4_nfer$fit, plt = "LPX"))
 fits_minfapar <- dplyr::bind_rows(mutate(mod3_minfapar$fit, plt = "Measurement"),mutate(mod4_minfapar$fit, plt = "LPX"))
 
-g3 <- visreg_ggplot(fits_nfer,"sqrt_Nfer_kgha","black","red","sqrt N fertilisation (kg/ha)","ln N2O (ug/m2/h)")
+g3 <- visreg_ggplot(fits_nfer,"sqrt_Nfer_kgha","black","red",~paste("sqrt N fertilisation (kg"," ha"^-1,")"),~paste("Forest ln ", N[2], O, " (", mu,"g m"^-2,"h"^-1,")"))
 g3
 
 g4 <- visreg_ggplot(fits_minfapar,"min_fapar","black","red","min fAPAR"," ")
@@ -175,22 +160,12 @@ stepwise(cropland_data_model,"n2o_a")[[1]]
 stepwise(cropland_data_model,"n2o_a")[[2]]
 stepwise(cropland_data_model,"n2o_a")[[3]]
 #the best model is when only including sqrt_Nfer_kgha+orgc_a+PPFD_total_a+max_fapar
-#if additionally including ndep_a -> n_dep is non-significant 
-summary((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+max_fapar+vpd_a+ndep_a+(1|site_a),data=cropland_data)))
+summary((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+max_fapar+(1|site_a),data=cropland_data)))
 
 #if including all of them all - ndep is most non-significant -> so remove them
 summary((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+max_fapar+vpd_a+ndep_a+min_fapar+Tg_a+(1|site_a),data=cropland_data)))
+summary((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+max_fapar+vpd_a+min_fapar+Tg_a+(1|site_a),data=cropland_data)))
 
-#we remove ndep to do stepwise again
-cropland_data <- (na.omit(subset(all_n2o_df,pft=="cropland")[,c("lon","lat","z","pft","site_a","n2o_a","orgc_a","vpd_a",
-                                                                "Tg_a","PPFD_total_a","sqrt_Nfer_kgha",
-                                                                "min_fapar","max_fapar")]))
-
-cropland_data_model <- cropland_data[,!(names(cropland_data) %in% c("lon","lat","z","pft"))]
-
-stepwise(cropland_data_model,"n2o_a")[[1]]
-stepwise(cropland_data_model,"n2o_a")[[2]]
-stepwise(cropland_data_model,"n2o_a")[[3]]
 #this is our model
 mod5 <- ((lmer(n2o_a~orgc_a+sqrt_Nfer_kgha+vpd_a+Tg_a+PPFD_total_a+max_fapar+min_fapar+(1|site_a),data=cropland_data)))
 summary(mod5)
@@ -275,9 +250,10 @@ df1_all$ndep_a <- log(df1_all$ndep)
 
 #Start fitting model
 df1_all_test <- na.omit(df1_all[,c("log_co2","Nfer_a","min_fapar","max_fapar","PPFD_total_a",
-                                   "ndep_a","Tg","vpd_a","orgc_a","logr")]) #removed ndep_a
+                                   "ndep_a","Tg","vpd_a","orgc_a","logr")]) 
 
-# a test
+#start stepwise regression
+#log(co2-e/co2-a) should be the first factor selected, then select factors step-by-step
 AIC(lm(logr~log_co2,df1_all_test))
 AIC(lm(logr~log_co2+Nfer_a,df1_all_test)) # this one is the best
 AIC(lm(logr~log_co2+min_fapar,df1_all_test)) 
@@ -308,7 +284,6 @@ mod1 <- (lm(logr~log_co2+Nfer_a+PPFD_total_a,df1_all_test))
 summary(mod1)
 
 #start LPX comparasion
-
 LPX_co2_sitemean <- na.omit(df1_all[,c("lon","lat","z","pft","logr","log_co2","Nfer_a","PPFD_total_a")])
 LPX_co2_sitemean <- unique(LPX_co2_sitemean[,c("lon","lat","z","pft")])
 dim(LPX_co2_sitemean)
@@ -356,7 +331,7 @@ fits_co2 <- dplyr::bind_rows(mutate(mod1_co2$fit, plt = "Measurement"),mutate(mo
 fits_nfer <- dplyr::bind_rows(mutate(mod1_nfer$fit, plt = "Measurement"),mutate(mod2_nfer$fit, plt = "LPX"))
 fits_ppfd <- dplyr::bind_rows(mutate(mod1_ppfd$fit, plt = "Measurement"),mutate(mod2_ppfd$fit, plt = "LPX"))
 
-g1a <- visreg_ggplot(fits_co2,"log_co2","black","red","ln CO2e/CO2a","ln N2Oe/lnN2Oa")
+g1a <- visreg_ggplot(fits_co2,"log_co2","black","red",~paste("ln (",CO2[ele.]," / ", CO2[amb.],")"),~paste("ln (",N2O[ele.]," / ", N2O[amb.], ")"))
 g1a
 
 g2a <- visreg_ggplot(fits_nfer,"Nfer_a","black","red","sqrt N fertilisation (kg/ha)"," ")
@@ -376,11 +351,10 @@ df2_all$ndep_a <- log(df2_all$ndep)
 #Start fitting model
 df2_all_test <- na.omit(df2_all[,c("dT","Nfer_a","min_fapar","max_fapar","PPFD_total_a",
                                    "ndep_a","vpd_a","orgc_a","logr")]) 
-stepwise_lm(df2_all_test,"logr")[[1]]
-stepwise_lm(df2_all_test,"logr")[[2]]
-stepwise_lm(df2_all_test,"logr")[[3]]
 
-# a test
+#start stepwise regression
+#dT should be the first factor selected, then select factors step-by-step
+
 AIC(lm(logr~dT,df2_all_test))
 AIC(lm(logr~dT+Nfer_a,df2_all_test)) 
 AIC(lm(logr~dT+min_fapar,df2_all_test)) 
@@ -454,34 +428,40 @@ g5a
 
 
 #calculate feedback factor
-#upscalling 
+
+#use SOC map for upscalling
 soc_nc <- read_nc_onefile("~/data/n2o_Yunke/final_map/ORGC.nc")
 orgc_df <- as.data.frame(nc_to_df(soc_nc, varnam = "ORGC"))
 summary(orgc_df)
 
+#input functions/map for area and land cover percentage at each grid
+#so we can know actual land area at each grid
+#then we calculate (grid's land area)/(total land area) at each grid
+#this will help us to upscal to get feedback and gains values
 area_m2 <- calc_area(orgc_df$lat,0.5,0.5)
 
 #fland - to show each grid's land cover percentage
 nc <- read_nc_onefile("~/data/fland/global.fland.nc")
 output_fland <- nc_to_df(nc, varnam = "fland")
 fland <- output_fland$fland
-summary(fland)
 #area_m2 * fland = land area at each grid
 conversion <- area_m2 * fland
 aa <- sum(conversion,na.rm=T)
+#here fraction is (grid's land area)/(total land area) at each grid
 fraction <- conversion/aa
 
-#here fraction is fraction of each grid's land cover
+#we will assume n2o at ambient condition (n2o_a) as 329.29ppb (uncertainty 0.12)
 #value using 2016's value: https://www.eea.europa.eu/data-and-maps/daviz/atmospheric-concentration-of-carbon-dioxide-5#tab-chart_5_filters=%7B%22rowFilters%22%3A%7B%7D%3B%22columnFilters%22%3A%7B%22pre_config_polutant%22%3A%5B%22CH4%20(ppb)%22%5D%7D%7D
-#n2o_a = 329.29 (0.12)
-#below is when dT = 0.39 and 7.5
+
+#then we set dT = 0.39 and 7.5, then after regressions and upscal, to get n2o_e
 final1 <- sum(329.29*fraction*exp((summary(mod3)$coefficients[1,1])+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*0.39),na.rm=T)
 final3 <- sum(329.29*fraction*exp((summary(mod3)$coefficients[1,1])+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7.5),na.rm=T)
 final1
 final3
+
 #calculate N2Oe uncertainty
 #after error propogation: ln (n2o-e/n2o-a) = model
-#uncertainty n2o_e =sqrt(delta-model^2 + (delta-n2o_a/ n2o_a)^2)
+#uncertainty n2o_e =n2o_e * sqrt(uncertainty-model^2 + (delta-n2o_a/ n2o_a)^2)
 uncertainty_model <- sqrt(((summary(mod3)$coefficients[1,1])^2 *
                              summary(mod3)$coefficients[1,2]^2+
                              (summary(mod3)$coefficients[2,1])^2 *
@@ -491,8 +471,17 @@ uncertainty_model <- sqrt(((summary(mod3)$coefficients[1,1])^2 *
 uncertainty_fN <- sqrt(uncertainty_model^2+ (0.12/329.29)^2)
 #here uncertainty_fN presents percentage of uncertainty -> will multuply with n2o_e to get actual uncertainty
 
+#estimate emission sensitivity (ES) of our model
+#assume Emission at current status is 17 Tg/yr (from Tian et al. 2020 Nature)
+E1 <- sum(17*fraction*exp((summary(mod3)$coefficients[1,1])+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*0.39),na.rm=T)
+E2 <- sum(17*fraction*exp((summary(mod3)$coefficients[1,1])+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7.5),na.rm=T)
+ES <- (E2-E1)/(7.5-0.39)
+ES #2.16: this value is ES from our model
+
+#this function is for feedback value
 fN<-function(N,N0,C_mean,M_mean,N_mean){(-8.0*10^(-6)*C_mean+4.2*10^(-6)*N_mean-4.9*10^(-6)*M_mean+0.117)*(sqrt(N)-sqrt(N0))}
 
+#this function is for uncertainty of feedback value
 err_fN<-function(N,N0,C_mean,M_mean,N_mean,err_N,err_N0){
   DN<-Deriv(fN,"N");DM0<-Deriv(fN,"M0");DN0<-Deriv(fN,"N0")
   sqrt( DN(N,N0,C_mean,M_mean,N_mean)^2*err_N^2 + 
@@ -500,37 +489,46 @@ err_fN<-function(N,N0,C_mean,M_mean,N_mean,err_N,err_N0){
 }
 
 #value and S.E.
+#for other values here (co2, ch4, using 2016's value - see above link)
 rN_value<- fN(final3,final1,402.88,1842.4,(final3+final1)/2)/(7.50-0.39)
-rN_value
+rN_value # this is feedback value of paper
 rN_SE_value<- err_fN(final3,final1,402.88,1842.4,(final3+final1)/2,final3*uncertainty_fN,final1*uncertainty_fN)/(7.50-0.39)
-rN_SE_value
+rN_SE_value  # this is S.E. of feedback value of paper
+
 #value of gains - See Liu et al. SI (corrected version)
 lamda <- 0.875
 se_lamda <- 0.38/1.96
 
 gains <- lamda*rN_value
-gains
+gains# this is gain of paper
 
 gains_uncertainty <- sqrt(rN_value^2 * se_lamda^2 + lamda^2 * rN_SE_value^2)
-gains_uncertainty
+gains_uncertainty # this is S.E. of gain of paper
 
 #using LPX
+#here we input global estimation of n2o under step experiment at LPX, when dT changes from 0 to 0.39, until 7.5
+#it runs 100 years - therefore show 100 values at each experiment (unit: Tg/yr)
 lpx <- read.csv("~/data/n2o_Yunke/final_forcing/eCO2_warming_LPX_total_n2o.csv")
 
+#assume ambient n2o is still 329ppb, then we get response ratio when temperature change - so we can know concentrations
 final1_lpx <- 329.29*mean(lpx$dT_0.39)/mean(lpx$dT_0)
 final3_lpx <-329.29*mean(lpx$dT_7.5)/mean(lpx$dT_0)
 
 rN_value_lpx<- fN(final3_lpx,final1_lpx,402.88,1842.4,(final3_lpx+final1_lpx)/2)/(7.50-0.39)
-rN_value_lpx
+rN_value_lpx # this is feedback value of LPX
 
 gains_lpx <- lamda*rN_value_lpx
-gains_lpx
+gains_lpx # this is gain value of LPX
 
 gains_uncertainty_lpx <- sqrt(rN_value_lpx^2 * se_lamda^2 + lamda^2 * 0^2)
-gains_uncertainty_lpx
+gains_uncertainty_lpx # this is uncertainty of gain value of LPX
+
+#estimate emission sensitivity (ES) of LPX
+ES <- (mean(lpx$dT_7.5)-mean(lpx$dT_0))/(7.5-0)
+ES #1.05 this value is ES from LPX
 
 #co2 feedback
-#value using 2016 value: https://www.eea.europa.eu/data-and-maps/daviz/atmospheric-concentration-of-carbon-dioxide-5#tab-chart_5_filters=%7B%22rowFilters%22%3A%7B%7D%3B%22columnFilters%22%3A%7B%22pre_config_polutant%22%3A%5B%22CO2%20(ppm)%22%5D%7D%7D
+#including global map from N fertilisation and PPFD
 nfer_nc <- read_nc_onefile("~/data/n2o_Yunke/final_map/nfer.nc")#unit g/m2
 nfer_df <- as.data.frame(nc_to_df(nfer_nc, varnam = "nfer"))
 summary(nfer_df)
@@ -538,7 +536,8 @@ PPFD_total_nc <- read_nc_onefile("~/data/n2o_Yunke/final_map/PPFD_total.nc")
 PPFD_total_df <- as.data.frame(nc_to_df(PPFD_total_nc, varnam = "PPFD_total"))
 summary(PPFD_total_df)
 
-#without intercept term, values are
+#the method is same as warming model - but here we remove intercept term because the intercept is non-significant
+#we assume n2o at ambient condition is 380, then co2-e at 416 and 813ppm separately to get feedback value
 final1a <- sum(329.29*fraction*exp(0+ summary(mod1)$coefficients[2,1]*log(416/380)+
                                      summary(mod1)$coefficients[3,1]*sqrt(nfer_df$nfer*10)+
                                      summary(mod1)$coefficients[4,1]*log(PPFD_total_df$PPFD_total)),na.rm=T)
@@ -548,9 +547,10 @@ final3a <- sum(329.29*fraction*exp(0+ summary(mod1)$coefficients[2,1]*log(813/38
                                      summary(mod1)$coefficients[4,1]*log(PPFD_total_df$PPFD_total)),na.rm=T)
 final1a
 final3a
-#final1a*uncertainty_fN2
-#final3a*uncertainty_fN2
 
+#calculate N2Oe uncertainty
+#after error propogation: ln (n2o-e/n2o-a) = model
+#uncertainty n2o_e =n2o_e * sqrt(uncertainty-model^2 + (delta-n2o_a/ n2o_a)^2)
 uncertainty_model2 <- sqrt(summary(mod1)$coefficients[2,1]^2 *
                              summary(mod1)$coefficients[2,2]^2 +
                              summary(mod1)$coefficients[3,1]^2 *
@@ -558,22 +558,24 @@ uncertainty_model2 <- sqrt(summary(mod1)$coefficients[2,1]^2 *
                              summary(mod1)$coefficients[4,1]^2 *
                              summary(mod1)$coefficients[4,2]^2)
 uncertainty_fN2 <- sqrt(uncertainty_model2^2+ (0.12/329.29)^2)
-uncertainty_fN2
+#here uncertainty_fN2 presents percentage of uncertainty -> will multuply with n2o_e to get actual uncertainty
 
 #feedback value
 rN_value_eCO2<- fN(final3a,final1a,(813+416)/2,1842.4,(final3a+final1a)/2)/(813-416)
-rN_value_eCO2
+rN_value_eCO2 #feedback value of eCO2 model
 rN_value_eCO2_se <- err_fN(final3a,final1a,(813+416)/2,1842.4,(final3a+final1a)/2,final3a*uncertainty_fN2,final1a*uncertainty_fN2)/(813-416)
-rN_value_eCO2_se
+rN_value_eCO2_se #S.E. feedback value of eCO2 model
 
 #using LPX
+#here we input global estimation of n2o under step experiment at LPX, when eCO2 changes from 380 to 416, until 813
+#it runs 100 years - therefore show 100 values at each experiment (unit: Tg/yr)
 lpx <- read.csv("~/data/n2o_Yunke/final_forcing/eCO2_warming_LPX_total_n2o.csv")
 #assume n2o_a, again, is 329.29 (0.12)
 final1_lpx_eCO2 <- 329.29*mean(lpx$eCO2_416)/mean(lpx$dT_0)
 final3_lpx_eCO2 <-329.29*mean(lpx$eCO2_813)/mean(lpx$dT_0)
 
 rN_value_eCO2_lpx<- fN(final3_lpx_eCO2,final1_lpx_eCO2,(813+416)/2,1842.4,(final3_lpx_eCO2+final1_lpx_eCO2)/2)/(813-416)
-rN_value_eCO2_lpx
+rN_value_eCO2_lpx #feedback value of eCO2 in LPX
 
 #lamda of eCO2
 #quote from IPCC AR6:
@@ -582,16 +584,29 @@ lamda <- (560-280)/3.93
 lamda_se <- (560-280)*0.47/(3.93^2)
 
 gains_co2 <- lamda*rN_value_eCO2
-gains_co2
+gains_co2 #gains of eCO2 of our model
 
 gains_uncertainty <- sqrt(rN_value_eCO2^2 * lamda_se^2 + lamda^2 * rN_value_eCO2_se^2)
-gains_uncertainty
+gains_uncertainty #uncertainty gains of eCO2 of our model
 
 gains_co2_lpx <- lamda*rN_value_eCO2_lpx
-gains_co2_lpx
+gains_co2_lpx #gains of eCO2 of LPX
 
 gains_uncertainty_lpx <- sqrt(rN_value_eCO2_lpx^2 * lamda_se^2 + lamda^2 * 0^2)
-gains_uncertainty_lpx
+gains_uncertainty_lpx #uncertainty of gains of eCO2 of LPX
+
+
+#show global distribution map
+#newmap <- getMap(resolution = "low")
+#plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
+#points(subset(all_n2o_df,pft=="forest")$lon,subset(all_n2o_df,pft=="forest")$lat, col="green", pch=16,cex=1)
+#points(subset(all_n2o_df,pft=="grassland")$lon,subset(all_n2o_df,pft=="grassland")$lat, col="yellow", pch=16,cex=1)
+#points(subset(all_n2o_df,pft=="cropland")$lon,subset(all_n2o_df,pft=="cropland")$lat, col="brown", pch=16,cex=1)
+
+#newmap <- getMap(resolution = "low")
+#plot(newmap, xlim = c(-180, 180), ylim = c(-75, 75), asp = 1)
+#points(df1_all$lon,df1_all$lat, col="red", pch=16,cex=1)
+#points(df2_all$lon,df2_all$lat, col="blue", pch=16,cex=1)
 
 #variable importance from lmer model
 #https://gist.github.com/BERENZ/e9b581a4b7160357934e

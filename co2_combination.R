@@ -563,12 +563,12 @@ rN_value_lpx<- fN(final3_lpx,final1_lpx,402.88,1842.4,(final3_lpx+final1_lpx)/2)
 rN_value_lpx
 
 rN_SE_value_lpx <- err_fN(final3_lpx,final1_lpx,402.88,1842.4,(final3_lpx+final1_lpx)/2,final3_lpx_uncertainty,final1_lpx_uncertainty)/(7.50-0.39)
-rN_SE_value_lpx*1.96
+rN_SE_value_lpx
 
 gains_lpx <- lamda*rN_value_lpx
 gains_lpx
 
-gains_uncertainty_lpx <- 1.96*sqrt(rN_value_lpx^2 * se_lamda^2 + lamda^2 * rN_SE_value_lpx^2)
+gains_uncertainty_lpx <- sqrt(rN_value_lpx^2 * se_lamda^2 + lamda^2 * rN_SE_value_lpx^2)
 gains_uncertainty_lpx
 
 #co2 feedback
@@ -632,11 +632,11 @@ lamda_se <- (560-280)*0.47/(3.93^2)
 gains_co2 <- lamda*rN_value_eCO2
 gains_co2
 
-gains_uncertainty <- 1.96*sqrt(rN_value_eCO2^2 * lamda_se^2 + lamda^2 * rN_value_eCO2_se^2)
+gains_uncertainty <- sqrt(rN_value_eCO2^2 * lamda_se^2 + lamda^2 * rN_value_eCO2_se^2)
 gains_uncertainty
 
 gains_co2_lpx <- lamda*rN_value_eCO2_lpx
 gains_co2_lpx
 
-gains_uncertainty_lpx <- 1.96*sqrt(rN_value_eCO2_lpx^2 * lamda_se^2 + lamda^2 * rN_value_eCO2_lpx_se^2)
+gains_uncertainty_lpx <- sqrt(rN_value_eCO2_lpx^2 * lamda_se^2 + lamda^2 * rN_value_eCO2_lpx_se^2)
 gains_uncertainty_lpx
