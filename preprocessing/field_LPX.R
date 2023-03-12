@@ -327,12 +327,13 @@ annual_ppfd <- data.frame(matrix(NA))
 
 #now, average T into annual, sum-ups ppfd into annnual
 days <- rep(c(31,28,31,30,31,30,31,31,30,31,30,31),ncol(annual_ppfd))
-monthly_ppfd_final_final <- monthly_ppfd_final_growing*86400*days/1000000 #convert values from umol/m2/s to mol/month
+monthly_ppfd_final_final <- monthly_ppfd_final_growing*86400*days/1000000 #convert values from umol/m2/s to mol/m2/month
 
 for (i in c(1:37)) {
   annual_temperature[1:nrow(monthly_temperature),i] <- rowMeans(monthly_temperature[1:nrow(monthly_temperature),c((i*12-11):(i*12))],na.rm=T)
   annual_ppfd[1:nrow(monthly_ppfd_final_final),i] <- rowSums(monthly_ppfd_final_final[1:nrow(monthly_ppfd_final_final),c((i*12-11):(i*12))],na.rm=T) 
 } 
+#now the unit of annual_ppfd should be mol/m2 of the year
 
 output_T <- as.data.frame(cbind(df_all_sites,annual_temperature))
 output_ppfd <- as.data.frame(cbind(df_all_sites,annual_ppfd))

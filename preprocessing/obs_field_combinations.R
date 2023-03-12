@@ -314,6 +314,7 @@ all_n2o_df$rep[all_n2o_df$lon==8.50 & all_n2o_df$lat==50.50] <- "rep"
 all_n2o_df <- subset(all_n2o_df,is.na(rep)==T)
 
 #combined with predicted n2o and forest n2o
+#code: field_LPX.R
 lpx_n2o <- read.csv("~/data/n2o_Yunke/final_forcing/LPX_annual_n2o.csv")
 names(lpx_n2o)
 lpx_n2o_sitemean <- as.data.frame(cbind(lpx_n2o[,c(1:4)],rowMeans(lpx_n2o[,c(5:ncol(lpx_n2o))])))

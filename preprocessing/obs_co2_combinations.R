@@ -99,24 +99,3 @@ names(df2_all_output) <-  c("lon","lat","original_ref","location","n2o_amb","n2o
                             "PPFD","ndep","ORGC")
 csvfile <- paste("~/data/n2o_Yunke/final_obs_dataset/obs_warming_dataset.csv")
 write_csv(df2_all_output, path = csvfile)
-
-#convert some values
-df1_all$Nfer_a<- sqrt(df1_all$Nfer)
-df1_all$PPFD_total_a <- log(df1_all$PPFD_total)
-df1_all$vpd_a <- log(df1_all$vpd)
-df1_all$orgc_a <- log(df1_all$ORGC)
-
-df1_all_test <- na.omit(df1_all[,c("log_co2","Nfer_a","min_fapar","mean_fapar","max_fapar","PPFD_total_a",
-                                   "Tg","vpd_a","orgc_a","logr")])
-
-summary(lm(logr~log_co2+Nfer_a+PPFD_total_a,df1_all_test))
-r.squaredGLMM(lm(logr~log_co2+Nfer_a+PPFD_total_a,df1_all))
-
-df2_all$Nfer_a<- sqrt(df2_all$Nfer)
-df2_all$PPFD_total_a <- log(df2_all$PPFD_total)
-df2_all$vpd_a <- log(df2_all$vpd)
-df2_all$orgc_a <- log(df2_all$ORGC)
-
-df2_all_test <- na.omit(df2_all[,c("dT","Nfer_a","min_fapar","mean_fapar","max_fapar","PPFD_total_a",
-                                   "vpd_a","orgc_a","logr")])#remove ndep_a
-summary(lm(logr~orgc_a+dT,df2_all_test))
