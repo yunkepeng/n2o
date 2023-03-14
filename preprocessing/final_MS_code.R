@@ -58,6 +58,8 @@ dim(forest_data)
 mod1 <- (lmer(n2o_a~Tg_a+obs_moisture+(1|site_a),data=forest_data))
 summary(mod1)
 r.squaredGLMM(mod1)
+#test: add one more variables - n.s.
+summary(lmer(n2o_a~Tg_a+obs_moisture+ndep_a+(1|site_a),data=forest_data))
 
 #merged data with LPX - using the same database to the model - and make sure it includes available pred_n2o (that not account for forest cover <80%)
 forest_moisture_data_forLPX <- na.omit(subset(all_n2o_df,pft=="forest")[,c("n2o_a","pred_n2o","Tg_a","obs_moisture","site_a","lon","lat","z","pft")])
@@ -116,6 +118,8 @@ stepwise(grassland_data_model,"n2o_a")[[2]]
 mod3 <- (lmer(n2o_a~sqrt_Nfer_kgha+min_fapar+(1|site_a),data=grassland_data))
 summary(mod3)
 r.squaredGLMM(mod3)
+#test: add one more varialbes - n.s.
+summary(lmer(n2o_a~sqrt_Nfer_kgha+min_fapar+max_fapar+(1|site_a),data=grassland_data))
 
 grassland_data_sitemean <- unique(grassland_data[,c("lon","lat","z","pft")])
 
