@@ -25,6 +25,12 @@ all_n2o_df$pred_n2o[all_n2o_df$pft=="forest"&all_n2o_df$forest_cover<0.8] <- NA
 all_n2o_df$log_pred_n2o <- log(all_n2o_df$pred_n2o)
 all_n2o_df$log_obs_n2o <- log(all_n2o_df$obs_n2o)
 
+nrow(subset(all_n2o_df,pft=="forest"))
+length(unique(subset(all_n2o_df,pft=="forest")$sitename))
+nrow(subset(all_n2o_df,pft=="grassland"))
+length(unique(subset(all_n2o_df,pft=="grassland")$sitename))
+nrow(subset(all_n2o_df,pft=="cropland"))
+length(unique(subset(all_n2o_df,pft=="cropland")$sitename))
 
 a1 <- analyse_modobs2(subset(all_n2o_df,pft=="forest"),"log_pred_n2o","log_obs_n2o", type = "points",relative=TRUE)$gg+
   theme(axis.text=element_text(size=15),axis.title=element_text(size=15),
@@ -245,6 +251,9 @@ g11
 
 #now, include co2 model
 df1_all <- read.csv("~/data/n2o_Yunke/final_obs_dataset/obs_eCO2_dataset.csv")
+nrow(df1_all)
+nrow(unique(df1_all[,c("lon","lat")]))
+
 summary(df1_all)
 df1_all$Nfer_a<- sqrt(df1_all$Nfer)
 df1_all$PPFD_total_a <- log(df1_all$PPFD_total)
@@ -346,6 +355,9 @@ g3a
                         
 #warming experiments
 df2_all <- read.csv("~/data/n2o_Yunke/final_obs_dataset/obs_warming_dataset.csv")
+nrow(df2_all)
+nrow(unique(df2_all[,c("lon","lat")]))
+
 df2_all$Nfer_a<- sqrt(df2_all$Nfer)
 df2_all$PPFD_total_a <- log(df2_all$PPFD_total)
 df2_all$vpd_a <- log(df2_all$vpd)
