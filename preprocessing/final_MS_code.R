@@ -56,6 +56,11 @@ all_n2o_df$sqrt_Nfer_kgha <- sqrt(all_n2o_df$Nfer_kgha)
 all_n2o_df$orgc_a <- log(all_n2o_df$ORGC)
 all_n2o_df$site_a <- (all_n2o_df$sitename)
 
+#check soil moisture metrics (only forest is significant)
+summary(lmer(n2o_a~obs_moisture+(1|site_a),data=subset(all_n2o_df,pft=="forest")))
+summary(lmer(n2o_a~obs_moisture+(1|site_a),data=subset(all_n2o_df,pft=="grassland")))
+summary(lmer(n2o_a~obs_moisture+(1|site_a),data=subset(all_n2o_df,pft=="cropland")))
+
 #forest dataset - the best model should be fitted by Tg and moisture
 forest_data <- subset(all_n2o_df,pft=="forest")[,c("n2o_a","site_a","obs_moisture","orgc_a","Tg_a","PPFD_total_a","ndep_a","min_fapar","max_fapar")]
 stepwise(forest_data,"n2o_a")[[1]]
@@ -488,11 +493,11 @@ uncertainty_fN <- sqrt(uncertainty_model^2+ (0.12/329.29)^2)
 #here uncertainty_fN presents percentage of uncertainty -> will multuply with n2o_e to get actual uncertainty
 
 #estimate emission sensitivity (ES) of our model
-#assume Emission at current status is 17 Tg/yr (from Tian et al. 2020 Nature)
-E1 <- sum(17*fraction*exp((summary(mod3)$coefficients[1,1])+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*0.39),na.rm=T)
-E2 <- sum(17*fraction*exp((summary(mod3)$coefficients[1,1])+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7.5),na.rm=T)
+#using 8.07 from mean(lpx$dT_0) from LPX simulations (average Tg/yr of ambient n2o conditions)
+E1 <- sum(8.07*fraction*exp((summary(mod3)$coefficients[1,1])+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*0.39),na.rm=T)
+E2 <- sum(8.07*fraction*exp((summary(mod3)$coefficients[1,1])+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7.5),na.rm=T)
 ES <- (E2-E1)/(7.5-0.39)
-ES #2.16: this value is ES from our model
+ES 
 
 #this function is for feedback value
 fN<-function(N,N0,C_mean,M_mean,N_mean){(-8.0*10^(-6)*C_mean+4.2*10^(-6)*N_mean-4.9*10^(-6)*M_mean+0.117)*(sqrt(N)-sqrt(N0))}
