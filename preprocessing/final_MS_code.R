@@ -493,9 +493,11 @@ uncertainty_fN <- sqrt(uncertainty_model^2+ (0.12/329.29)^2)
 #here uncertainty_fN presents percentage of uncertainty -> will multuply with n2o_e to get actual uncertainty
 
 #estimate emission sensitivity (ES) of our model
-#using 8.07 from mean(lpx$dT_0) from LPX simulations (average Tg/yr of ambient n2o conditions)
-E1 <- sum(8.07*fraction*exp((summary(mod3)$coefficients[1,1])+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*0.39),na.rm=T)
-E2 <- sum(8.07*fraction*exp((summary(mod3)$coefficients[1,1])+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7.5),na.rm=T)
+#using 8.08 from mean(lpx$dT_0) from LPX simulations (average Tg/yr of ambient n2o conditions)
+lpx <- read.csv("~/data/n2o_Yunke/final_forcing/eCO2_warming_LPX_total_n2o.csv")
+summary(lpx$dT_0)
+E1 <- sum(8.08*fraction*exp((summary(mod3)$coefficients[1,1])+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*0.39),na.rm=T)
+E2 <- sum(8.08*fraction*exp((summary(mod3)$coefficients[1,1])+ (summary(mod3)$coefficients[2,1])*log(orgc_df$ORGC)+(summary(mod3)$coefficients[3,1])*7.5),na.rm=T)
 ES <- (E2-E1)/(7.5-0.39)
 ES 
 
