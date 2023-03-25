@@ -247,20 +247,20 @@ empty_data3 <- data.frame(matrix(NA))
 for (i in c(1:171)) {
   print(i)
   site_data <- SpatialPoints(grassland[,c("lon","lat")]) # only select lon and lat
-  pft1 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",
+  pft1 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021_per_landuse.nc",
                                   band=i,varname="NH4PAST"), site_data, sp = TRUE) %>%
              as_tibble() %>% right_join(grassland, by = c("lon", "lat")))[,1]
-  pft2 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",
+  pft2 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021_per_landuse.nc",
                                   band=i,varname="NO3PAST"), site_data, sp = TRUE) %>%
              as_tibble() %>% right_join(grassland, by = c("lon", "lat")))[,1]
   pft_all <- pft1+pft2
   empty_data2[1:nrow(grassland),(i)]<- pft_all
   
   site_data <- SpatialPoints(cropland[,c("lon","lat")]) # only select lon and lat
-  pft1 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",
+  pft1 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021_per_landuse.nc",
                                   band=i,varname="NH4CROP"), site_data, sp = TRUE) %>%
              as_tibble() %>% right_join(cropland, by = c("lon", "lat")))[,1]
-  pft2 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",
+  pft2 <- (raster::extract(raster("~/data/LPX/data/nfert_NMIP2022_1850-2021_per_landuse.nc",
                                   band=i,varname="NO3CROP"), site_data, sp = TRUE) %>%
              as_tibble() %>% right_join(cropland, by = c("lon", "lat")))[,1]
   pft_all <- pft1+pft2
