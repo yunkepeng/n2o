@@ -326,7 +326,7 @@ annual_ppfd <- data.frame(matrix(NA))
 
 
 #now, average T into annual, sum-ups ppfd into annnual
-days <- rep(c(31,28,31,30,31,30,31,31,30,31,30,31),ncol(annual_ppfd))
+days <- rep(c(31,28,31,30,31,30,31,31,30,31,30,31),444/12)
 monthly_ppfd_final_final <- monthly_ppfd_final_growing*86400*days/1000000 #convert values from umol/m2/s to mol/m2/month
 
 for (i in c(1:37)) {
