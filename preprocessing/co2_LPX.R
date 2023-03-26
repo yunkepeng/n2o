@@ -236,8 +236,6 @@ forest <- subset(df_all,pft=="forest")
 grassland <- subset(df_all,pft=="grassland")
 cropland <- subset(df_all,pft=="cropland")
 
-#a1 <- raster("~/data/LPX/data/nfert_NMIP2022_1850-2021.nc",band=171)
-#plot(a1) # unit in gN/m2
 #NH4CROP, NO3CROP, NH4PAST, NO3PAST
 #band: 1-171
 
