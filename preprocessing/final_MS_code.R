@@ -184,6 +184,9 @@ summary((lmer(n2o_a~sqrt_Nfer_kgha+orgc_a+PPFD_total_a+max_fapar+vpd_a+min_fapar
 #this is our model
 mod5 <- ((lmer(n2o_a~orgc_a+sqrt_Nfer_kgha+vpd_a+Tg_a+PPFD_total_a+max_fapar+min_fapar+(1|site_a),data=cropland_data)))
 summary(mod5)
+#mod5 <- ((lm(n2o_a~orgc_a+sqrt_Nfer_kgha+vpd_a+Tg_a+PPFD_total_a+max_fapar+min_fapar,data=cropland_data)))
+#calc.relimp(mod5,rela=TRUE)
+
 LPX_cropland_sitemean <- unique(cropland_data[,c("lon","lat","z","pft")])
 
 lpx_cropland_n2o <- subset(read.csv("~/data/n2o_Yunke/final_forcing/LPX_annual_n2o.csv"),pft=="cropland")
