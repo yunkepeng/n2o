@@ -15,6 +15,7 @@ library(relaimpo)
 library(Deriv)
 library(rworldmap)
 library(maps)
+library(sfsmisc)
 #1. read observation csv and output validation
 
 all_n2o_df <- read.csv("~/data/n2o_Yunke/final_obs_dataset/obs_field_dataset.csv")
@@ -259,53 +260,17 @@ g11
 
 #now, include co2 model
 df1_all <- read.csv("~/data/n2o_Yunke/final_obs_dataset/obs_eCO2_dataset.csv")
+
 nrow(df1_all)
 nrow(unique(df1_all[,c("lon","lat")]))
 
-summary(df1_all)
-df1_all$Nfer_a<- sqrt(df1_all$Nfer)
-df1_all$PPFD_total_a <- log(df1_all$PPFD_total)
-df1_all$vpd_a <- log(df1_all$vpd)
-df1_all$orgc_a <- log(df1_all$ORGC)
-df1_all$ndep_a <- log(df1_all$ndep)
-
-#Start fitting model
-df1_all_test <- na.omit(df1_all[,c("log_co2","Nfer_a","min_fapar","max_fapar","PPFD_total_a",
-                                   "ndep_a","Tg","vpd_a","orgc_a","logr")]) 
-
-#start stepwise regression
-#log(co2-e/co2-a) should be the first factor selected, then select factors step-by-step
-AIC(lm(logr~log_co2,df1_all_test))
-AIC(lm(logr~log_co2+Nfer_a,df1_all_test)) # this one is the best
-AIC(lm(logr~log_co2+min_fapar,df1_all_test)) 
-AIC(lm(logr~log_co2+max_fapar,df1_all_test))
-AIC(lm(logr~log_co2+PPFD_total_a,df1_all_test))
-AIC(lm(logr~log_co2+Tg,df1_all_test))
-AIC(lm(logr~log_co2+vpd_a,df1_all_test))
-AIC(lm(logr~log_co2+orgc_a,df1_all_test))
-AIC(lm(logr~log_co2+ndep_a,df1_all_test))
-
-#then in further
-AIC(lm(logr~log_co2+Nfer_a+max_fapar,df1_all_test))
-AIC(lm(logr~log_co2+Nfer_a+PPFD_total_a,df1_all_test)) #this one is the best
-AIC(lm(logr~log_co2+Nfer_a+Tg,df1_all_test))
-AIC(lm(logr~log_co2+Nfer_a+vpd_a,df1_all_test))
-AIC(lm(logr~log_co2+Nfer_a+orgc_a,df1_all_test))
-AIC(lm(logr~log_co2+Nfer_a+ndep_a,df1_all_test))
-
-#then - model is even worse:
-AIC(lm(logr~log_co2+Nfer_a+PPFD_total_a+max_fapar,df1_all_test))
-AIC(lm(logr~log_co2+Nfer_a+PPFD_total_a+Tg,df1_all_test))
-AIC(lm(logr~log_co2+Nfer_a+PPFD_total_a+vpd_a,df1_all_test))
-AIC(lm(logr~log_co2+Nfer_a+PPFD_total_a+orgc_a,df1_all_test))
-AIC(lm(logr~log_co2+Nfer_a+PPFD_total_a+ndep_a,df1_all_test))
-
-#so the best model is: 
-mod1 <- (lm(logr~log_co2+Nfer_a+PPFD_total_a,df1_all_test))
+#fit model by rlm (robust linear model)
+mod1 <- rlm(logr~log_co2,df1_all)
 summary(mod1)
+f.robftest(mod1, var = "log_co2") # p-value
 
 #start LPX comparasion
-LPX_co2_sitemean <- na.omit(df1_all[,c("lon","lat","z","pft","logr","log_co2","Nfer_a","PPFD_total_a")])
+LPX_co2_sitemean <- na.omit(df1_all[,c("lon","lat","z","pft","logr","log_co2")])
 LPX_co2_sitemean <- unique(LPX_co2_sitemean[,c("lon","lat","z","pft")])
 dim(LPX_co2_sitemean)
 LPX_co2_sitemean$pft[LPX_co2_sitemean$pft=="Grassland"] <- "grassland"
@@ -313,95 +278,43 @@ LPX_co2_sitemean$pft[LPX_co2_sitemean$pft=="Forest"] <- "forest"
 LPX_co2_sitemean$pft[LPX_co2_sitemean$pft=="Cropland"] <- "cropland"
 
 lpx_n2o <- read.csv("~/data/n2o_Yunke/final_forcing/eCO2_LPX_annual_n2o.csv")
-#use the year 2006's map, since this is step experiment's initial year (2006)
-lpx_nfer <- read.csv("~/data/n2o_Yunke/final_forcing/eCO2_LPX_annual_nfer.csv")[,c("lon","lat","z","pft","year2006")]
-names(lpx_nfer) <-c("lon","lat","z","pft","nfer")
-lpx_PPFD <- read.csv("~/data/n2o_Yunke/final_forcing/eCO2_LPX_annual_PPFD.csv")[,c("lon","lat","z","pft","year2006")]
-names(lpx_PPFD) <-c("lon","lat","z","pft","PPFD")
 LPX_all <-Reduce(function(x,y) merge(x = x, y = y, c("lon","lat","z","pft"),all.x=TRUE),
-                 list(LPX_co2_sitemean,lpx_n2o,lpx_nfer,lpx_PPFD))
+                 list(LPX_co2_sitemean,lpx_n2o))
 
 #combine it into a dataframe
 a1 <- c(log(LPX_all$dT0_C416/LPX_all$dT0_C380),
         log(LPX_all$dT0_C582/LPX_all$dT0_C380),
         log(LPX_all$dT0_C813/LPX_all$dT0_C380)) #n2o
 a2 <- c(rep(log(416/380),nrow(LPX_all)),rep(log(582/380),nrow(LPX_all)),rep(log(813/380),nrow(LPX_all))) #co2
-a3 <- c(LPX_all$nfer,LPX_all$nfer,LPX_all$nfer) #nfer
-a4 <- c(LPX_all$PPFD,LPX_all$PPFD,LPX_all$PPFD) #ppfd
 
-final_lpx_data <- as.data.frame(cbind(a1,a2,a3,a4))
-names(final_lpx_data) <- c("logr","log_co2","Nfer_a","PPFD_total_a")
-final_lpx_data$Nfer_a <- sqrt(final_lpx_data$Nfer_a)
-final_lpx_data$PPFD_total_a <- log(final_lpx_data$PPFD_total_a)
 
-final_lpx_data[sapply(final_lpx_data, is.nan)] <- NA
-final_lpx_data[sapply(final_lpx_data, is.infinite)] <- NA
+final_lpx_data <- as.data.frame(cbind(a1,a2))
+names(final_lpx_data) <- c("logr","log_co2")
 
-mod2 <- (lm(logr~log_co2+Nfer_a+PPFD_total_a,final_lpx_data))
+mod2 <- (rlm(logr~log_co2,final_lpx_data))
 summary(mod2)
 
 mod1_co2 <- visreg(mod1,"log_co2",type="contrast")
-mod1_nfer <-visreg(mod1,"Nfer_a",type="contrast")
-mod1_ppfd <- visreg(mod1,"PPFD_total_a",type="contrast")
-
 mod2_co2 <- visreg(mod2,"log_co2",type="contrast")
-mod2_nfer <-visreg(mod2,"Nfer_a",type="contrast")
-mod2_ppfd <- visreg(mod2,"PPFD_total_a",type="contrast")
+
 
 fits_co2 <- dplyr::bind_rows(mutate(mod1_co2$fit, plt = "Measurement"),mutate(mod2_co2$fit, plt = "LPX"))
-fits_nfer <- dplyr::bind_rows(mutate(mod1_nfer$fit, plt = "Measurement"),mutate(mod2_nfer$fit, plt = "LPX"))
-fits_ppfd <- dplyr::bind_rows(mutate(mod1_ppfd$fit, plt = "Measurement"),mutate(mod2_ppfd$fit, plt = "LPX"))
 
 g1a <- visreg_ggplot(fits_co2,"log_co2","black","red",~paste("ln (",CO2[ele.]," / ", CO2[amb.],")"),~paste("ln (",N2O[ele.]," / ", N2O[amb.], ")"))
 g1a
 
-g2a <- visreg_ggplot(fits_nfer,"Nfer_a","black","red","sqrt N fertilisation (kg/ha)"," ")
-g2a
-
-g3a <- visreg_ggplot(fits_ppfd,"PPFD_total_a","black","red","ln total gPPFD (mol/m2)"," ")
-g3a
                         
 #warming experiments
 df2_all <- read.csv("~/data/n2o_Yunke/final_obs_dataset/obs_warming_dataset.csv")
 nrow(df2_all)
 nrow(unique(df2_all[,c("lon","lat")]))
 
-df2_all$Nfer_a<- sqrt(df2_all$Nfer)
-df2_all$PPFD_total_a <- log(df2_all$PPFD_total)
-df2_all$vpd_a <- log(df2_all$vpd)
-df2_all$orgc_a <- log(df2_all$ORGC)
-df2_all$ndep_a <- log(df2_all$ndep)
-
-#Start fitting model
-df2_all_test <- na.omit(df2_all[,c("dT","Nfer_a","min_fapar","max_fapar","PPFD_total_a",
-                                   "ndep_a","vpd_a","orgc_a","logr")]) 
-
-#start stepwise regression
-#dT should be the first factor selected, then select factors step-by-step
-
-AIC(lm(logr~dT,df2_all_test))
-AIC(lm(logr~dT+Nfer_a,df2_all_test)) 
-AIC(lm(logr~dT+min_fapar,df2_all_test)) 
-AIC(lm(logr~dT+max_fapar,df2_all_test))
-AIC(lm(logr~dT+PPFD_total_a,df2_all_test))
-AIC(lm(logr~dT+vpd_a,df2_all_test))
-AIC(lm(logr~dT+orgc_a,df2_all_test))# this one is the best
-AIC(lm(logr~dT+ndep_a,df2_all_test))  
-
-#then, further
-AIC(lm(logr~dT+orgc_a+Nfer_a,df2_all_test)) 
-AIC(lm(logr~dT+orgc_a+min_fapar,df2_all_test)) 
-AIC(lm(logr~dT+orgc_a+max_fapar,df2_all_test))
-AIC(lm(logr~dT+orgc_a+PPFD_total_a,df2_all_test))
-AIC(lm(logr~dT+orgc_a+vpd_a,df2_all_test))
-AIC(lm(logr~dT+orgc_a+ndep_a,df2_all_test))  
-
-#so the best should just be:
-mod3 <- (lm(logr~orgc_a+dT,df2_all))
+mod3 <- (rlm(logr~dT,df2_all))
 summary(mod3)
+f.robftest(mod3, var = "dT") # p-value
 
 #applied in lpx model
-LPX_warming_sitemean <- na.omit(df2_all[,c("lon","lat","dT","orgc_a","logr")])
+LPX_warming_sitemean <- na.omit(df2_all[,c("lon","lat","dT","logr")])
 LPX_warming_sitemean <- unique(df2_all[,c("lon","lat","z","pft")])
 
 #check forestcover of all experimental sites - one site shows forest cover lower than 0.8
@@ -422,7 +335,7 @@ LPX_all <-Reduce(function(x,y) merge(x = x, y = y, c("lon","lat","z","pft"),all.
 a1 <- c(log(LPX_all$dT0.39_C380/LPX_all$dT0_C380),
         log(LPX_all$dT3.95_C380/LPX_all$dT0_C380),
         log(LPX_all$dT7.5_C380/LPX_all$dT0_C380)) #n2o
-a2 <- c(rep(0.39,nrow(LPX_all)),rep(3.95,nrow(LPX_all)),rep(7.5,nrow(LPX_all))) #co2
+a2 <- c(rep(0.39,nrow(LPX_all)),rep(3.95,nrow(LPX_all)),rep(7.5,nrow(LPX_all))) 
 
 final_lpx_data <- as.data.frame(cbind(a1,a2))
 names(final_lpx_data) <- c("logr","dT")
@@ -430,23 +343,15 @@ names(final_lpx_data) <- c("logr","dT")
 final_lpx_data[sapply(final_lpx_data, is.nan)] <- NA
 final_lpx_data[sapply(final_lpx_data, is.infinite)] <- NA
 
-mod4 <- (lm(logr~dT,final_lpx_data))
+mod4 <- (rlm(logr~dT,final_lpx_data))
 mod4_dT <-visreg(mod4,"dT",type="contrast")
-
 summary(mod4)
 
-mod3 <- (lm(logr~orgc_a+dT,df2_all))
+mod3 <- (rlm(logr~dT,df2_all))
 summary(mod3)
-mod3_orgc <- visreg(mod3,"orgc_a",type="contrast")
 mod3_dT <-visreg(mod3,"dT",type="contrast")
 
-
-fits_orgc <- dplyr::bind_rows(mutate(mod3_orgc$fit, plt = "Measurement"))
 fits_dT <- dplyr::bind_rows(mutate(mod3_dT$fit, plt = "Measurement"),mutate(mod4_dT$fit, plt = "LPX"))
-
-g4a <- visreg_ggplot(fits_orgc,"orgc_a","black","red","ln SOC (g/kg)","ln N2Oe/lnN2Oa")
-g4a
-
 g5a <- visreg_ggplot(fits_dT,"dT","black","red","dT", " ")
 g5a
 
