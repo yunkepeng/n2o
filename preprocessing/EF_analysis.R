@@ -96,4 +96,4 @@ cropland_EF_compare <- merge(cropland_EF,pred_EF,
 summary(cropland_EF_compare)
 cropland_EF_compare$obs_EF <- cropland_EF_compare$EF/100
 
-analyse_modobs2(cropland_EF_compare,"pred_EF","obs_EF", type = "points",relative=TRUE)$gg
+#analyse_modobs2(cropland_EF_compare,"pred_EF","obs_EF", type = "points",relative=TRUE)$gg
