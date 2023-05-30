@@ -8,8 +8,10 @@ library(Deriv)
 library(raster)
 devtools::load_all("/Users/yunpeng/yunkepeng/latest_packages/rbeni/") 
 
+source("~/yunkepeng/n2o/preprocessing/data_transfer.R") #needs to be adjusted to the cloned repository path
+
 #co2-only effect
-df1 <- read_csv("~/data/n2o_wang_oikos/n2o_tables1.csv")
+df1 <- read_csv(df1_path)
 
 names(df1) <- c("ref","location","n_amb","n_elv","n_site","n2o_amb",
                 "n2o_elv","co2_amb","co2_elv","dco2","duration","pft","logr",
@@ -25,7 +27,7 @@ df1$logr[df1$logr=="-Inf"] <- NA
 
 #add fapar3g from 1/12 resolution (monthly max and mean)
 #code see: co2_fapar.R
-fapar3g_df_zhu <- read.csv("~/data/n2o_Yunke/final_forcing/co2_siteinfo_measurementyear_fapar3g_zhu.csv")
+fapar3g_df_zhu <- read.csv(fapar3g_df_zhu_path)
 dim(fapar3g_df_zhu)
 summary(fapar3g_df_zhu)
 
@@ -36,7 +38,7 @@ fapar3g_df_zhu2 <- fapar3g_df_zhu[,c("lon","lat","min_fapar","mean_fapar","max_f
 
 #read  predictors
 #For code see: co2_predictors.R
-climates_soil <- read.csv("~/data/n2o_Yunke/final_forcing/co2_siteinfo_predictors.csv")[,c("lon","lat","z","vpd","Tg","PPFD_total","PPFD","ndep","ORGC")]
+climates_soil <- read.csv(climates_soil_path)[,c("lon","lat","z","vpd","Tg","PPFD_total","PPFD","ndep","ORGC")]
 
 #merge with both
 df1_a <- merge(df1,fapar3g_df_zhu2,by=c("lon","lat"),all.x=TRUE)
@@ -47,7 +49,7 @@ df1_all <- merge(df1_a,climates_soil,
 df1_all$Nfer[is.na(df1_all$Nfer)==T] <- 0
 
 #warming only effect
-df2 <- read_csv("~/data/n2o_wang_oikos/n2o_tables2.csv")
+df2 <- read_csv(df2_path)
 summary(df2)
 names(df2) <- c("ref","location","n_amb","n_elv","n_site","n2o_amb",
                 "n2o_elv","dT","duration","pft","logr",
@@ -83,7 +85,7 @@ names(df1_all_output) <-  c("lon","lat","original_ref","location","n2o_amb","n2o
                              "mean_fapar","max_fapar","z","vpd","Tg","PPFD_total",
                              "PPFD","ndep","ORGC")
 
-csvfile <- paste("~/data/n2o_Yunke/final_obs_dataset/obs_eCO2_dataset.csv")
+csvfile <- paste(output_co2_path)
 write_csv(df1_all_output, path = csvfile)
 
 df2_all_output <- df2_all[,c("lon","lat","ref","location","n2o_amb","n2o_elv",
@@ -97,5 +99,5 @@ names(df2_all_output) <-  c("lon","lat","original_ref","location","n2o_amb","n2o
                             "species","Nfer_kgha","other_treatment","days_of_duration","min_fapar",
                             "mean_fapar","max_fapar","z","vpd","Tg","PPFD_total",
                             "PPFD","ndep","ORGC")
-csvfile <- paste("~/data/n2o_Yunke/final_obs_dataset/obs_warming_dataset.csv")
+csvfile <- paste(output_warming_path)
 write_csv(df2_all_output, path = csvfile)

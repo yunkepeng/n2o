@@ -6,11 +6,13 @@ library(lme4)
 library("PerformanceAnalytics")
 library(MuMIn)
 
+source("~/yunkepeng/n2o/preprocessing/data_transfer.R") #needs to be adjusted to the cloned repository.
+
 #1. input database
 
 ### Liao et al. 2020 GCB: https://onlinelibrary.wiley.com/doi/full/10.1111/gcb.16365
 #1a: field-based n2o
-liao_field <- read.csv("~/data/n2o_liao/org/Global_change_biology_GCB-22-1572_primary_field_data.csv")
+liao_field <- read.csv(liao_field_path)
 liao_field2<- liao_field[,c("Ref","Study.area","Year","Latitude","Longitude","N.addition..kg.ha.1.",
                             "Altitude..m.","N2O.fluxes..μg.N.m.2.h.1.","Total.N..g.kg.1.","NO3....mg.kg.1.",
                             "NH4...mg.kg.1.","pH","SOC..g.kg.1.","Ecosystem.types","Soil.moisture....",
@@ -62,7 +64,7 @@ summary(liao_field2)
 summary(liao_field2$end_yr -liao_field2$start_yr)
 
 #1b: pot-based n2o from Liao et al. (not used in paper)
-liao_pot <- read.csv("~/data/n2o_liao/org/Global_change_biology_GCB-22-1572_primary_pot_data.csv")
+liao_pot <- read.csv(liao_pot_path)
 #by checking original paper (e.g. Ref_ID = 42 or 51), mg N kg-1 is actually N addition. NO2 fluxes (μg N m-2 h-1) is actually N2O fluxes
 liao_pot2<- liao_pot[,c("Ref","Study.area","Year","Latitude","Longitude","mg.N.kg.1",
                         "Altitude..m.","NO2.fluxes..μg.N.m.2.h.1.","Total.N..g.kg.1.","NO3....mg.kg.1.",
@@ -96,7 +98,7 @@ summary(liao_all$n2o_ugm2h)
 liao_all$file <- "Liao et al. gcb"
 
 #2a. Cui et al. Nature Food (without fallow)
-cui <- read.csv("~/data/n2o_cui_naturefood/43016_2021_384_MOESM3_ESM.csv")
+cui <- read.csv(cui_path)
 summary(cui)
 
 cui2 <- cui[,c("Reference","Latitude","Longitude","Start_year","End_year","Fertilizers",
@@ -110,7 +112,7 @@ cui2$file <- "cui et al. nature food"
 cui2$pft <- "cropland"
 
 #2b Cui et al. Nature Food (with fallow)
-cui_fallow <- read.csv("~/data/n2o_cui_naturefood/43016_2021_384_MOESM3_ESM_fallow.csv")
+cui_fallow <- read.csv(cui_fallow_path)
 
 cui2_fallow <- cui_fallow[,c("Reference","Latitude","Longitude","Start_year","End_year","Fertilizers",
                              "Crop.type","Nrate","Tillage","Irrigation","Site","EF")]
@@ -136,7 +138,7 @@ summary(cui2_fallow)
 cui2_fallow$pft <- "fallow"
 
 #3.hortnagl et al. gcb - 9 grassland sites
-hortnagl <- read.csv("~/data/n2o_hortnagl_gcb/n2o_hortnagl_gcb.csv")
+hortnagl <- read.csv(hortnagl_path)
 names(hortnagl)
 hortnagl$n2o <- hortnagl$cumulative_n2o_kgha/hortnagl$duration_days
 #the unit is now kg/ha/day
@@ -150,7 +152,7 @@ hortnagl2$pft <- "grassland"
 hortnagl2$method <- "field"
 
 #add Xu-Ri
-xuri <- read.csv("~/data/n2o_xuri/xuri_newphy.csv")
+xuri <- read.csv(xuri_path)
 names(xuri) <- c("no","lon","lat","pft","year","n2o_kghayr","location","ref")
 xuri$n2o_ugm2h <- xuri$n2o_kghayr*1000000000/10000/(365*24)
 #correct pft
@@ -253,22 +255,22 @@ dim(all_n2o_z5)
 
 #ouput EF database separately
 cropland_EF <- subset(all_n2o_z4,is.na(EF)==FALSE)
-csvfile <- paste("~/data/n2o_Yunke/final_forcing/EF_database.csv")
+csvfile <- paste(output_EF_path)
 write_csv(cropland_EF, path = csvfile)
 
 #output site information (used for environmental predictors ingest)
 siteinfo <- (unique(all_n2o_z5[,c("lon","lat","z","start_yr","end_yr","pft")]))
-csvfile <- paste("~/data/n2o_Yunke/final_forcing/n2o_siteinfo.csv")
+csvfile <- paste(output_n2o_siteinfo_path)
 write_csv(siteinfo, path = csvfile)
 
 #now, read all predictors data
 #For code see: field_predictors.R
-allpredictors <- read.csv("~/data/n2o_Yunke/final_forcing/siteinfo_predictors.csv")[,c("lon","lat","z","vpd","Tg","PPFD_total","PPFD","ndep","ORGC")]
+allpredictors <- read.csv(allpredictors)[,c("lon","lat","z","vpd","Tg","PPFD_total","PPFD","ndep","ORGC")]
 all_n2o_df <- merge(all_n2o_z5,allpredictors,by=c("lon","lat","z"),all.x=TRUE)
 
 #add fapar3g from 1/12 resolution (monthly max and mean)
 #for code see: field_fapar.R
-fapar3g_df_zhu <- read.csv("~/data/n2o_Yunke/final_forcing/siteinfo_measurementyear_fapar3g_zhu.csv")
+fapar3g_df_zhu <- read.csv(fapar3g_df_zhu)
 
 fapar3g_df_zhu <- fapar3g_df_zhu %>% mutate(min_fapar = coalesce(min_fapar_nfocal0,min_fapar_nfocal1,min_fapar_nfocal2)) %>%
   mutate(mean_fapar = coalesce(mean_fapar_nfocal0,mean_fapar_nfocal1,mean_fapar_nfocal2)) %>%
@@ -315,7 +317,7 @@ all_n2o_df <- subset(all_n2o_df,is.na(rep)==T)
 
 #combined with predicted n2o and forest n2o
 #code: field_LPX.R
-lpx_n2o <- read.csv("~/data/n2o_Yunke/final_forcing/LPX_annual_n2o.csv")
+lpx_n2o <- read.csv(lpx_n2o)
 names(lpx_n2o)
 lpx_n2o_sitemean <- as.data.frame(cbind(lpx_n2o[,c(1:4)],rowMeans(lpx_n2o[,c(5:ncol(lpx_n2o))])))
 names(lpx_n2o_sitemean) <- c("lon","lat","z","pft","pred_n2o")
@@ -323,7 +325,7 @@ names(lpx_n2o_sitemean) <- c("lon","lat","z","pft","pred_n2o")
 all_n2o_df <- merge(all_n2o_df,lpx_n2o_sitemean,
                     by=c("lon","lat","z","pft"),all.x=TRUE)
 
-forest_cover <- read.csv("~/data/n2o_Yunke/final_forcing/forestcover_site.csv")
+forest_cover <- read.csv(forest_cover)
 all_n2o_df <- merge(all_n2o_df,forest_cover,
                     by=c("lon","lat","z","pft"),all.x=TRUE)
 
@@ -334,5 +336,5 @@ all_n2o_df <- all_n2o_df %>%
          original_ref = ref)
 
 all_n2o_df <- all_n2o_df[,!names(all_n2o_df) %in% c("rep", "method", "EF")]
-csvfile <- paste("~/data/n2o_Yunke/final_obs_dataset/obs_field_dataset.csv")
+csvfile <- paste(output_path)
 write_csv(all_n2o_df, path = csvfile)
